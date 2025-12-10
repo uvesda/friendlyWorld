@@ -3,7 +3,7 @@ const db = require('../config/db');
 module.exports = {
   getAll() {
     return new Promise((resolve, reject) => {
-      db.all(`SELECT * FROM puppies`, (err, rows) => {
+      db.all(`SELECT * FROM posters`, (err, rows) => {
         if (err) reject(err);
         else resolve(rows);
       });
@@ -12,7 +12,7 @@ module.exports = {
 
   getById(id) {
     return new Promise((resolve, reject) => {
-      db.get(`SELECT * FROM puppies WHERE id = ?`, [id], (err, row) => {
+      db.get(`SELECT * FROM posters WHERE id = ?`, [id], (err, row) => {
         if (err) reject(err);
         else resolve(row);
       });
@@ -21,10 +21,10 @@ module.exports = {
 
   create(data) {
     return new Promise((resolve, reject) => {
-      const { name, age, breed } = data;
+      const { name, type, description, photo, userContact } = data;
       db.run(
-        `INSERT INTO puppies (name, age, breed) VALUES (?, ?, ?)`,
-        [name, age, breed],
+        `INSERT INTO posters (name, type, description, photo, userContact) VALUES (?, ?, ?, ?, ?)`,
+        [name, type, description, photo, userContact],
         function (err) {
           if (err) reject(err);
           else resolve({ id: this.lastID });
@@ -35,10 +35,10 @@ module.exports = {
 
   update(id, data) {
     return new Promise((resolve, reject) => {
-      const { name, age, breed } = data;
+      const { name, type, description, photo, userContact } = data;
       db.run(
-        `UPDATE puppies SET name=?, age=?, breed=? WHERE id=?`,
-        [name, age, breed, id],
+        `UPDATE posters SET name=?, type=?, description=?, photo=?, userContact=?, WHERE id=?`,
+        [name, type, description, photo, userContact, id],
         function (err) {
           if (err) reject(err);
           else resolve({ changes: this.changes });
@@ -49,7 +49,7 @@ module.exports = {
 
   delete(id) {
     return new Promise((resolve, reject) => {
-      db.run(`DELETE FROM puppies WHERE id=?`, [id], function (err) {
+      db.run(`DELETE FROM posters WHERE id=?`, [id], function (err) {
         if (err) reject(err);
         else resolve({ changes: this.changes });
       });
