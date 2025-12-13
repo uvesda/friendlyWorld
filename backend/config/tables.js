@@ -7,7 +7,6 @@ function initTables() {
        CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-
         passwordHash TEXT NOT NULL,
         salt TEXT NOT NULL
        );
@@ -15,6 +14,8 @@ function initTables() {
        CREATE TABLE IF NOT EXISTS sessions (
         sessionId TEXT UNIQUE NOT NULL,
         userId INTEGER,
+        createdAt INTEGER NOT NULL,
+        expiresAt INTEGER NOT NULL,
         FOREIGN KEY (userId) REFERENCES users(id)
        );
 
