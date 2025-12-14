@@ -1,9 +1,11 @@
 const db = require('../config/db');
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 10;
 
 module.exports = {
 
   createUser(name, password) {
-    return new Promisw((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         const salt = bcrypt.genSalt(SALT_ROUNDS);
         const passwordHash = bcrypt.hash(password, salt);
         db.run(`INSERT INTO users (name, passwordHash, salt) VALUES (?, ?, ?)`, 
@@ -16,7 +18,7 @@ module.exports = {
     })
   },
 
-  getAll() {
+  getAllUsers() {
     return new Promise((resolve, reject) => {
       db.all(`SELECT * FROM users`, (err, rows) => {
         if (err) reject(err);
@@ -25,7 +27,7 @@ module.exports = {
     });
   },
 
-  getById(id) {
+  getUserById(id) {
     return new Promise((resolve, reject) => {
       db.get(`SELECT * FROM users WHERE id = ?`, [id], (err, row) => {
         if (err) reject(err);
@@ -34,7 +36,17 @@ module.exports = {
     });
   },
 
-  delete(id) {
+  findUserByName(name) {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT id, name, passwordHash, salt FROM users WHERE name = ?`, [name],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+      });
+    })
+},
+
+  deleteUser(id) {
     return new Promise((resolve, reject) => {
       db.run(`DELETE FROM users WHERE id=?`, [id], function (err) {
         if (err) reject(err);
