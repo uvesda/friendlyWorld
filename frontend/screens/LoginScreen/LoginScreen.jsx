@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react'
 import {
   View,
   Text,
@@ -8,46 +8,69 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert
-} from 'react-native';
-import { AuthContext } from '@app/contexts/AuthContext';
-import { LinearGradient } from 'expo-linear-gradient';
+  Alert,
+  Image,
+} from 'react-native'
+import { Asset } from 'expo-asset'
+import { AuthContext } from '@app/contexts/AuthContext'
+import { backgrounds, colors } from '@assets/index'
+import { Loader } from '@components/Loader/Loader'
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { setAuthState } = useContext(AuthContext);
+  const [ready, setReady] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const { setAuthState } = useContext(AuthContext)
+
+  useEffect(() => {
+    Asset.fromModule(backgrounds.hourglass)
+      .downloadAsync()
+      .then(() => {
+        setReady(true)
+      })
+  }, [])
+
+  if (!ready) {
+    return <Loader />
+  }
 
   const handleLogin = () => {
     // Временная логика для демонстрации позже заменить на запрос из API
     if (email && password) {
-      setAuthState({ isLoggedIn: true, loading: false });
+      setAuthState({ isLoggedIn: true, loading: false })
     } else {
-      Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
+      Alert.alert('Ошибка', 'Пожалуйста, заполните все поля')
     }
-  };
+  }
 
   const handleForgotPassword = () => {
-    Alert.alert('Восстановление пароля', 'Функция восстановления пароля будет добавлена позже');
-  };
+    Alert.alert(
+      'Восстановление пароля',
+      'Функция восстановления пароля будет добавлена позже'
+    )
+  }
 
   const handleCreateAccount = () => {
-    Alert.alert('Создание аккаунта', 'Функция создания аккаунта будет добавлена позже');
-  };
+    Alert.alert(
+      'Создание аккаунта',
+      'Функция создания аккаунта будет добавлена позже'
+    )
+  }
 
   return (
-    <LinearGradient
-      colors={['#f9dcbdff', '#FFAC54']}
-      style={styles.gradient}
-    >
+    <View style={styles.container}>
+      <Image
+        source={backgrounds.hourglass}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
+
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.content}>
-            {/* <Text style={styles.title}>Войти</Text> */}
-
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -69,9 +92,12 @@ const LoginScreen = () => {
               autoCapitalize="none"
             />
 
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text style={styles.forgotPassword}>Забыли пароль? Нажмите сюда</Text>
-            </TouchableOpacity>
+            <View style={styles.forgotPasswordContainer}>
+              <Text style={styles.forgotPasswordText}>Забыли пароль? </Text>
+              <TouchableOpacity onPress={handleForgotPassword}>
+                <Text style={styles.forgotPasswordLink}>Нажмите сюда</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>Войти</Text>
@@ -83,20 +109,20 @@ const LoginScreen = () => {
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity style={styles.createAccountButton} onPress={handleCreateAccount}>
+            <TouchableOpacity
+              style={styles.createAccountButton}
+              onPress={handleCreateAccount}
+            >
               <Text style={styles.createAccountText}>Создать аккаунт</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
-  );
-};
+    </View>
+  )
+}
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
   container: {
     flex: 1,
   },
@@ -108,16 +134,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 40,
-    color: '#fff',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
   input: {
     borderWidth: 1,
     borderColor: '#FFCA92',
@@ -126,18 +142,26 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF',
     color: '#333',
   },
-  forgotPassword: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
+  forgotPasswordContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     marginBottom: 24,
+    fontFamily: 'Inter-Regular',
+  },
+  forgotPasswordText: {
+    color: '#000000',
     fontSize: 14,
-    textDecorationLine: 'underline',
+  },
+  forgotPasswordLink: {
+    color: colors.green,
+    fontSize: 14,
+    fontWeight: '600',
   },
   loginButton: {
-    backgroundColor: '#9EB71A',
+    backgroundColor: colors.green,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -154,7 +178,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Unbounded-Regular',
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -168,9 +192,9 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     paddingHorizontal: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#000000',
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Inter-Regular',
   },
   createAccountButton: {
     borderWidth: 0,
@@ -178,13 +202,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    backgroundColor: '#9EB71A',
+    backgroundColor: colors.green,
   },
   createAccountText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Unbounded-Regular',
   },
-});
+})
 
 export default LoginScreen
