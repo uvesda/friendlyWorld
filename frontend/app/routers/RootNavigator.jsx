@@ -6,6 +6,7 @@ import { AuthContext } from "@app/contexts/AuthContext";
 import MainScreen from "@screens/MainScreen/MainScreen";
 import PuppiesScreen from "@screens/PuppiesScreen/PuppiesScreen";
 import { Loader } from "@components/Loader/Loader";
+import LoginScreen from "@screens/LoginScreen/LoginScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -24,8 +25,8 @@ export default function RootNavigator() {
           </>
         ) : (
           <Stack.Screen
-            name="Loading"
-            component={() => null}
+            name="Login"
+            component={LoginScreen}
             options={{ headerShown: false }}
           />
         )}
