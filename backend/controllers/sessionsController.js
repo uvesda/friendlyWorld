@@ -6,7 +6,6 @@ const cookieParser = require('cookie-parser');
 
 module.exports = {
   async authController(req, res, next) {
-    console.log('ggg');
     try {
       const SESSION_COOKIE_NAME = 'sid';
       const sid = req.cookies[SESSION_COOKIE_NAME];

@@ -2,8 +2,9 @@ const db = require('./db');
 
 function initTables() {
   db.serialize(() => {
-    db.run(`
-      
+    db.exec(`
+        PRAGMA foreign_keys = ON;
+
        CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
