@@ -11,6 +11,7 @@ const postPhotoRoutes = require('./routes/postPhotoRoutes')
 const favoriteRoutes = require('./routes/favoriteRoutes')
 const commentRoutes = require('./routes/commentRoutes')
 const chatRoutes = require('./routes/chatRoutes')
+const userRoutes = require('./routes/userRoutes')
 
 const app = express()
 
@@ -30,6 +31,7 @@ app.use('/uploads', express.static('uploads'))
 app.use('/', favoriteRoutes)
 app.use('/', commentRoutes)
 app.use('/', chatRoutes)
+app.use('/', userRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend' })

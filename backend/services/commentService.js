@@ -24,4 +24,11 @@ module.exports = {
     }
     return true
   },
+
+  async edit(commentId, userId, text) {
+    const result = await CommentModel.update(commentId, userId, text)
+    if (result.changes === 0)
+      throw new Error('No permission or comment not found')
+    return true
+  },
 }

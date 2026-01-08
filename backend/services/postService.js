@@ -31,4 +31,10 @@ module.exports = {
     }
     return true
   },
+
+  async update(postId, userId, data) {
+    const result = await PostModel.update(postId, userId, data)
+    if (result.changes === 0) throw new Error('No permission or post not found')
+    return true
+  },
 }

@@ -32,4 +32,17 @@ module.exports = {
       error(res, e, 403)
     }
   },
+
+  async edit(req, res) {
+    try {
+      await CommentService.edit(
+        req.params.commentId,
+        req.user.id,
+        req.body.text
+      )
+      success(res, true)
+    } catch (e) {
+      error(res, e, 403)
+    }
+  },
 }

@@ -91,4 +91,50 @@ module.exports = {
       )
     })
   },
+
+  update(id, author_id, data) {
+    const fields = []
+    const params = []
+
+    if (data.status) {
+      fields.push('status=?')
+      params.push(data.status)
+    }
+    if (data.event_date) {
+      fields.push('event_date=?')
+      params.push(data.event_date)
+    }
+    if (data.address) {
+      fields.push('address=?')
+      params.push(data.address)
+    }
+    if (data.hashtag) {
+      fields.push('hashtag=?')
+      params.push(data.hashtag)
+    }
+    if (data.latitude) {
+      fields.push('latitude=?')
+      params.push(data.latitude)
+    }
+    if (data.longitude) {
+      fields.push('longitude=?')
+      params.push(data.longitude)
+    }
+
+    if (fields.length === 0) return Promise.resolve({ changes: 0 })
+
+    fields.push('updated_at=CURRENT_TIMESTAMP')
+    params.push(id, author_id)
+
+    return new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE posts SET ${fields.join(', ')} WHERE id=? AND author_id=?`,
+        params,
+        function (err) {
+          if (err) reject(err)
+          else resolve({ changes: this.changes })
+        }
+      )
+    })
+  },
 }

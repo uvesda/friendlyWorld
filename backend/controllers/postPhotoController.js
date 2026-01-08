@@ -23,4 +23,34 @@ module.exports = {
       error(res, e)
     }
   },
+
+  async delete(req, res) {
+    try {
+      const { id: postId, photoId } = req.params
+      const result = await PostPhotoService.deletePhoto(
+        postId,
+        req.user.id,
+        photoId
+      )
+      success(res, result)
+    } catch (e) {
+      error(res, e, 403)
+    }
+  },
+
+  async update(req, res) {
+    try {
+      const { id: postId, photoId } = req.params
+      const file = req.file
+      const updated = await PostPhotoService.updatePhoto(
+        postId,
+        req.user.id,
+        photoId,
+        file
+      )
+      success(res, updated)
+    } catch (e) {
+      error(res, e, 403)
+    }
+  },
 }

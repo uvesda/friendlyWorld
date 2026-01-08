@@ -26,4 +26,26 @@ module.exports = {
       )
     })
   },
+
+  delete(photoId) {
+    return new Promise((resolve, reject) => {
+      db.run(`DELETE FROM post_photos WHERE id=?`, [photoId], function (err) {
+        if (err) reject(err)
+        else resolve({ changes: this.changes })
+      })
+    })
+  },
+
+  update(photoId, newPath) {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE post_photos SET path=? WHERE id=?`,
+        [newPath, photoId],
+        function (err) {
+          if (err) reject(err)
+          else resolve({ changes: this.changes })
+        }
+      )
+    })
+  },
 }

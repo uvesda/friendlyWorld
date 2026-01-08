@@ -46,4 +46,13 @@ module.exports = {
       error(res, e, 403)
     }
   },
+
+  async update(req, res) {
+    try {
+      await PostService.update(req.params.id, req.user.id, req.body)
+      success(res, true)
+    } catch (e) {
+      error(res, e, 403)
+    }
+  },
 }
