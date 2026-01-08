@@ -34,4 +34,35 @@ module.exports = {
       error(res, e)
     }
   },
+
+  async deleteChatForUser(req, res) {
+    try {
+      await ChatService.deleteChatForUser(req.user.id, req.params.chatId)
+      success(res, true)
+    } catch (e) {
+      error(res, e, 403)
+    }
+  },
+
+  async deleteMessage(req, res) {
+    try {
+      await ChatService.deleteMessage(req.user.id, req.params.messageId)
+      success(res, true)
+    } catch (e) {
+      error(res, e, 403)
+    }
+  },
+
+  async editMessage(req, res) {
+    try {
+      await ChatService.editMessage(
+        req.user.id,
+        req.params.messageId,
+        req.body.text
+      )
+      success(res, true)
+    } catch (e) {
+      error(res, e, 403)
+    }
+  },
 }
