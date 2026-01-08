@@ -1,30 +1,41 @@
-const express = require('express');
-const cors = require('cors');
-const logger = require('./middlewares/logger');
-const errorHandler = require('./middlewares/errorHandler');
-const initTables = require('./config/tables');
+const express = require('express')
+const cors = require('cors')
+const logger = require('./middlewares/logger')
+const errorHandler = require('./middlewares/errorHandler')
+const initTables = require('./config/tables')
 
 // Роуты
-const puppiesRoutes = require('./routes/puppiesRoutes');
+const authRoutes = require('./routes/authRoutes')
+const postRoutes = require('./routes/postRoutes')
+const postPhotoRoutes = require('./routes/postPhotoRoutes')
+const favoriteRoutes = require('./routes/favoriteRoutes')
+const commentRoutes = require('./routes/commentRoutes')
+const chatRoutes = require('./routes/chatRoutes')
 
-const app = express();
+const app = express()
 
 // Инициализация таблиц
-initTables();
+initTables()
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(logger);
+app.use(cors())
+app.use(express.json())
+app.use(logger)
 
 // Подключение маршрутов
-app.use('/puppies', puppiesRoutes);
+app.use('/auth', authRoutes)
+app.use('/posts', postRoutes)
+app.use('/posts', postPhotoRoutes)
+app.use('/uploads', express.static('uploads'))
+app.use('/', favoriteRoutes)
+app.use('/', commentRoutes)
+app.use('/', chatRoutes)
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Backend' });
-});
+  res.json({ message: 'Backend' })
+})
 
 // Обработчик ошибок
-app.use(errorHandler);
+app.use(errorHandler)
 
-module.exports = app;
+module.exports = app
