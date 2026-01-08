@@ -5,7 +5,8 @@ import { useFonts } from 'expo-font'
 export default function App() {
   const [fontsLoaded] = useFonts({
     'Unbounded-Regular': require('@assets/fonts/Unbounded-Regular.ttf'),
-    'Optima-bold': require('@assets/fonts/optima_bold.ttf'),
+    'Cruinn-Regular': require('@assets/fonts/Cruinn-Regular.ttf'),
+    'Cruinn-Bold': require('@assets/fonts/Cruinn-Bold.ttf'),
   })
 
   if (!fontsLoaded) {

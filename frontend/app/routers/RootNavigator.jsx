@@ -1,27 +1,25 @@
-import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useContext } from "react";
-import { AuthContext } from "@app/contexts/AuthContext";
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { useContext } from 'react'
+import { AuthContext } from '@app/contexts/AuthContext'
 
-import MainScreen from "@screens/MainScreen/MainScreen";
-import PuppiesScreen from "@screens/PuppiesScreen/PuppiesScreen";
-import { Loader } from "@components/Loader/Loader";
-import LoginScreen from "@screens/LoginScreen/LoginScreen";
+import MainScreen from '@screens/MainScreen/MainScreen'
+import { Loader } from '@components/Loader/Loader'
+import LoginScreen from '@screens/LoginScreen/LoginScreen'
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator()
 
 export default function RootNavigator() {
-  const { isLoggedIn, loading } = useContext(AuthContext);
+  const { isLoggedIn, loading } = useContext(AuthContext)
 
-  if (loading) return <Loader />;
+  if (loading) return <Loader />
 
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        {isLoggedIn ? (
+        {!isLoggedIn ? (
           <>
             <Stack.Screen name="Main" component={MainScreen} />
-            <Stack.Screen name="Puppies" component={PuppiesScreen} />
           </>
         ) : (
           <Stack.Screen
@@ -32,5 +30,5 @@ export default function RootNavigator() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
-  );
+  )
 }

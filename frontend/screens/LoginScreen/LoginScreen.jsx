@@ -2,7 +2,6 @@ import React, { useState, useContext, useEffect } from 'react'
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
@@ -15,12 +14,15 @@ import { Asset } from 'expo-asset'
 import { AuthContext } from '@app/contexts/AuthContext'
 import { backgrounds, colors } from '@assets/index'
 import { Loader } from '@components/Loader/Loader'
+import { TextInputField } from '@components/TextInputField/TextInputField'
+import { ButtonPrimary } from '@components/ButtonPrimary/ButtonPrimary'
+import { AppText } from '@components/AppText/AppText'
 
 const LoginScreen = () => {
   const [ready, setReady] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const { setAuthState } = useContext(AuthContext)
+  const { login } = useContext(AuthContext)
 
   useEffect(() => {
     Asset.fromModule(backgrounds.hourglass)
@@ -34,12 +36,11 @@ const LoginScreen = () => {
     return <Loader />
   }
 
-  const handleLogin = () => {
-    // Временная логика для демонстрации позже заменить на запрос из API
-    if (email && password) {
-      setAuthState({ isLoggedIn: true, loading: false })
-    } else {
-      Alert.alert('Ошибка', 'Пожалуйста, заполните все поля')
+  const handleLogin = async () => {
+    try {
+      await login(email, password)
+    } catch (e) {
+      Alert.alert('Ошибка', 'Неверный email или пароль')
     }
   }
 
@@ -71,10 +72,9 @@ const LoginScreen = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.content}>
-            <TextInput
-              style={styles.input}
+            <TextInputField
               placeholder="Email"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.gray}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -82,10 +82,9 @@ const LoginScreen = () => {
               autoComplete="email"
             />
 
-            <TextInput
-              style={styles.input}
+            <TextInputField
               placeholder="Пароль"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.gray}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -93,28 +92,29 @@ const LoginScreen = () => {
             />
 
             <View style={styles.forgotPasswordContainer}>
-              <Text style={styles.forgotPasswordText}>Забыли пароль? </Text>
+              <AppText style={styles.forgotPasswordText}>
+                Забыли пароль?{' '}
+              </AppText>
               <TouchableOpacity onPress={handleForgotPassword}>
-                <Text style={styles.forgotPasswordLink}>Нажмите сюда</Text>
+                <AppText style={styles.forgotPasswordLink}>
+                  Нажмите сюда
+                </AppText>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Войти</Text>
-            </TouchableOpacity>
+            <ButtonPrimary title="Войти" onPress={handleLogin} />
 
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>или</Text>
+              <AppText style={styles.dividerText}>или</AppText>
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity
-              style={styles.createAccountButton}
+            <ButtonPrimary
+              title="Создать аккаунт"
               onPress={handleCreateAccount}
-            >
-              <Text style={styles.createAccountText}>Создать аккаунт</Text>
-            </TouchableOpacity>
+              style={{ backgroundColor: colors.green }}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -134,22 +134,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#FFCA92',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    color: '#333',
-  },
   forgotPasswordContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 24,
-    fontFamily: 'Inter-Regular',
   },
   forgotPasswordText: {
     color: '#000000',
@@ -159,26 +147,6 @@ const styles = StyleSheet.create({
     color: colors.green,
     fontSize: 14,
     fontWeight: '600',
-  },
-  loginButton: {
-    backgroundColor: colors.green,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Unbounded-Regular',
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -192,22 +160,8 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     paddingHorizontal: 16,
-    color: '#000000',
+    color: colors.fullBlack,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
-  },
-  createAccountButton: {
-    borderWidth: 0,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    backgroundColor: colors.green,
-  },
-  createAccountText: {
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: 'Unbounded-Regular',
   },
 })
 

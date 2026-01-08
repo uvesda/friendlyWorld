@@ -12,20 +12,15 @@ module.exports = {
   },
 
   create({ email, password, name }) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const hash = await bcrypt.hash(password, 10)
-        db.run(
-          `INSERT INTO users (email, password, name) VALUES (?, ?, ?)`,
-          [email, hash, name],
-          function (err) {
-            if (err) reject(err)
-            else resolve({ id: this.lastID, email, name })
-          }
-        )
-      } catch (e) {
-        reject(e)
-      }
+    return new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO users (email, password, name) VALUES (?, ?, ?)`,
+        [email, password, name],
+        function (err) {
+          if (err) reject(err)
+          else resolve({ id: this.lastID, email, name })
+        }
+      )
     })
   },
 

@@ -5,8 +5,9 @@ const FavoriteModel = require('../models/favoriteModel')
 module.exports = {
   async getProfile(userId) {
     const user = await UserModel.findById(userId)
-    const myPosts = await PostModel.getByUser(userId)
-    const favorites = await FavoriteModel.getFavorites(userId)
+    const myPosts = await PostModel.getByAuthor(userId)
+    const favorites = await FavoriteModel.getUserFavorites(userId)
+
     return { user, myPosts, favorites }
   },
 
