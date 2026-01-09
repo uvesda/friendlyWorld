@@ -12,6 +12,16 @@ module.exports = {
       hashtag,
     } = post
 
+    // Валидация
+    if (!status?.trim()) throw new Error('Status is required')
+    if (!event_date?.trim()) throw new Error('Event date is required')
+    if (!address?.trim()) throw new Error('Address is required')
+    if (!hashtag?.trim()) throw new Error('Hashtag is required')
+
+    if (latitude && isNaN(Number(latitude))) throw new Error('Invalid latitude')
+    if (longitude && isNaN(Number(longitude)))
+      throw new Error('Invalid longitude')
+
     return new Promise((resolve, reject) => {
       db.run(
         `
@@ -43,10 +53,7 @@ module.exports = {
       params.push(`%${filters.hashtag}%`)
     }
 
-    if (conditions.length) {
-      query += ` WHERE ` + conditions.join(' AND ')
-    }
-
+    if (conditions.length) query += ` WHERE ` + conditions.join(' AND ')
     query += ` ORDER BY created_at DESC`
 
     return new Promise((resolve, reject) => {
@@ -96,27 +103,34 @@ module.exports = {
     const fields = []
     const params = []
 
-    if (data.status) {
+    if (data.status !== undefined) {
+      if (!data.status?.trim()) throw new Error('Status cannot be empty')
       fields.push('status=?')
       params.push(data.status)
     }
-    if (data.event_date) {
+    if (data.event_date !== undefined) {
+      if (!data.event_date?.trim())
+        throw new Error('Event date cannot be empty')
       fields.push('event_date=?')
       params.push(data.event_date)
     }
-    if (data.address) {
+    if (data.address !== undefined) {
+      if (!data.address?.trim()) throw new Error('Address cannot be empty')
       fields.push('address=?')
       params.push(data.address)
     }
-    if (data.hashtag) {
+    if (data.hashtag !== undefined) {
+      if (!data.hashtag?.trim()) throw new Error('Hashtag cannot be empty')
       fields.push('hashtag=?')
       params.push(data.hashtag)
     }
-    if (data.latitude) {
+    if (data.latitude !== undefined) {
+      if (isNaN(Number(data.latitude))) throw new Error('Invalid latitude')
       fields.push('latitude=?')
       params.push(data.latitude)
     }
-    if (data.longitude) {
+    if (data.longitude !== undefined) {
+      if (isNaN(Number(data.longitude))) throw new Error('Invalid longitude')
       fields.push('longitude=?')
       params.push(data.longitude)
     }

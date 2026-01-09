@@ -2,6 +2,8 @@ const db = require('../config/db')
 
 module.exports = {
   add(post_id, path) {
+    if (!path || !path.trim()) throw new Error('Photo path cannot be empty')
+
     return new Promise((resolve, reject) => {
       db.run(
         `INSERT INTO post_photos (post_id, path) VALUES (?, ?)`,
@@ -37,6 +39,9 @@ module.exports = {
   },
 
   update(photoId, newPath) {
+    if (!newPath || !newPath.trim())
+      throw new Error('Photo path cannot be empty')
+
     return new Promise((resolve, reject) => {
       db.run(
         `UPDATE post_photos SET path=? WHERE id=?`,

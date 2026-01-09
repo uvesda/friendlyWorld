@@ -1,4 +1,6 @@
 const PostModel = require('../models/postModel')
+const AppError = require('../utils/AppError')
+const ERRORS = require('../utils/errors')
 
 module.exports = {
   async create(userId, data) {
@@ -15,7 +17,7 @@ module.exports = {
   async getById(id) {
     const post = await PostModel.getById(id)
     if (!post) {
-      throw new Error('Post not found')
+      throw new AppError(ERRORS.POST_NOT_FOUND, 404)
     }
     return post
   },
@@ -27,14 +29,16 @@ module.exports = {
   async delete(postId, userId) {
     const result = await PostModel.delete(postId, userId)
     if (result.changes === 0) {
-      throw new Error('No permission or post not found')
+      throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
     return true
   },
 
   async update(postId, userId, data) {
     const result = await PostModel.update(postId, userId, data)
-    if (result.changes === 0) throw new Error('No permission or post not found')
+    if (result.changes === 0) {
+      throw new AppError(ERRORS.NO_PERMISSION, 403)
+    }
     return true
   },
 }

@@ -1,5 +1,4 @@
 import { colors } from '@assets/index'
-import React from 'react'
 import { Text, StyleSheet } from 'react-native'
 
 export const AppText = ({ style, children, fontFamily, ...props }) => {

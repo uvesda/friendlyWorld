@@ -9,4 +9,6 @@ export const authApi = {
   refresh: (refreshToken) => baseApi.post('/auth/refresh', { refreshToken }),
 
   me: () => baseApi.get('/me'),
+
+  logout: (refreshToken) => baseApi.post('/auth/logout', { refreshToken }),
 }

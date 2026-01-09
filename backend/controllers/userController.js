@@ -1,33 +1,34 @@
 const UserService = require('../services/userService')
-const { success, error } = require('../utils/response')
+const { success } = require('../utils/response')
+const AppError = require('../utils/AppError')
 
 module.exports = {
-  async getProfile(req, res) {
+  async getProfile(req, res, next) {
     try {
       const profile = await UserService.getProfile(req.user.id)
       success(res, profile)
     } catch (e) {
-      error(res, e)
+      next(e)
     }
   },
 
-  async updateProfile(req, res) {
+  async updateProfile(req, res, next) {
     try {
       const result = await UserService.updateProfile(req.user.id, req.body)
       success(res, result)
     } catch (e) {
-      error(res, e)
+      next(e)
     }
   },
 
-  async updateAvatar(req, res) {
+  async updateAvatar(req, res, next) {
     try {
-      if (!req.file) throw new Error('No file uploaded')
+      if (!req.file) throw new AppError('NO_FILE_UPLOADED', 400)
       const path = `/uploads/avatars/${req.file.filename}`
       const result = await UserService.updateAvatar(req.user.id, path)
       success(res, result)
     } catch (e) {
-      error(res, e)
+      next(e)
     }
   },
 }

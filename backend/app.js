@@ -1,7 +1,6 @@
 const express = require('express')
 const cors = require('cors')
 const logger = require('./middlewares/logger')
-const errorHandler = require('./middlewares/errorHandler')
 const initTables = require('./config/tables')
 
 // Роуты
@@ -12,6 +11,7 @@ const favoriteRoutes = require('./routes/favoriteRoutes')
 const commentRoutes = require('./routes/commentRoutes')
 const chatRoutes = require('./routes/chatRoutes')
 const userRoutes = require('./routes/userRoutes')
+const errorMiddleware = require('./middlewares/errorMiddleware')
 
 const app = express()
 
@@ -38,6 +38,6 @@ app.get('/', (req, res) => {
 })
 
 // Обработчик ошибок
-app.use(errorHandler)
+app.use(errorMiddleware)
 
 module.exports = app

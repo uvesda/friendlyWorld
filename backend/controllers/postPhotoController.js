@@ -1,8 +1,9 @@
 const PostPhotoService = require('../services/postPhotoService')
-const { success, error } = require('../utils/response')
+const { success } = require('../utils/response')
+const AppError = require('../utils/AppError')
 
 module.exports = {
-  async upload(req, res) {
+  async upload(req, res, next) {
     try {
       const result = await PostPhotoService.upload(
         req.params.id,
@@ -11,20 +12,20 @@ module.exports = {
       )
       success(res, result, 201)
     } catch (e) {
-      error(res, e, 400)
+      next(e)
     }
   },
 
-  async get(req, res) {
+  async get(req, res, next) {
     try {
       const photos = await PostPhotoService.getPhotos(req.params.id)
       success(res, photos)
     } catch (e) {
-      error(res, e)
+      next(e)
     }
   },
 
-  async delete(req, res) {
+  async delete(req, res, next) {
     try {
       const { id: postId, photoId } = req.params
       const result = await PostPhotoService.deletePhoto(
@@ -34,11 +35,11 @@ module.exports = {
       )
       success(res, result)
     } catch (e) {
-      error(res, e, 403)
+      next(e)
     }
   },
 
-  async update(req, res) {
+  async update(req, res, next) {
     try {
       const { id: postId, photoId } = req.params
       const file = req.file
@@ -50,7 +51,7 @@ module.exports = {
       )
       success(res, updated)
     } catch (e) {
-      error(res, e, 403)
+      next(e)
     }
   },
 }

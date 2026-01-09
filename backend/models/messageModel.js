@@ -2,6 +2,10 @@ const db = require('../config/db')
 
 module.exports = {
   async sendMessage(chat_id, sender_id, text) {
+    text = text?.trim()
+    if (!text) throw new Error('Message cannot be empty')
+    if (text.length > 1000) throw new Error('Message is too long')
+
     return new Promise((resolve, reject) => {
       db.run(
         `INSERT INTO messages (chat_id, sender_id, text) VALUES (?, ?, ?)`,

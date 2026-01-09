@@ -1,10 +1,12 @@
-import React, { createContext, useEffect, useState } from 'react'
+import { createContext, useEffect, useState } from 'react'
 import { auth } from '@utils/auth'
+import { tokenStorage } from '@utils/tokenStorage'
 
 export const AuthContext = createContext({
   isLoggedIn: false,
   loading: true,
   login: async () => {},
+  register: async () => {},
   logout: async () => {},
 })
 
@@ -17,39 +19,59 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const init = async () => {
       try {
-        const logged = await auth.isLoggedIn()
-        setState((prev) => ({
-          ...prev,
-          isLoggedIn: Boolean(logged),
-          loading: false,
-        }))
+        const accessToken = await tokenStorage.getAccessToken()
+        if (accessToken) {
+          const { user } = await auth.me()
+          setState({ isLoggedIn: true, loading: false, user })
+        } else {
+          const refreshToken = await tokenStorage.getRefreshToken()
+          if (refreshToken) {
+            try {
+              await auth.refresh(refreshToken)
+              const user = await auth.me()
+              setState({ isLoggedIn: true, loading: false, user })
+            } catch {
+              await tokenStorage.clear()
+              setState({ isLoggedIn: false, loading: false })
+            }
+          } else {
+            setState({ isLoggedIn: false, loading: false })
+          }
+        }
       } catch (e) {
-        console.error('Auth error:', e)
-        setState((prev) => ({
-          ...prev,
-          isLoggedIn: false,
-          loading: false,
-        }))
+        setState({ isLoggedIn: false, loading: false })
+        throw e
       }
     }
-
     init()
   }, [])
 
   const login = async (email, password) => {
-    await auth.login(email, password)
-    setState((prev) => ({
-      ...prev,
-      isLoggedIn: true,
-    }))
+    try {
+      await auth.login(email, password)
+      setState((prev) => ({ ...prev, isLoggedIn: true }))
+    } catch (e) {
+      throw e
+    }
+  }
+
+  const register = async (name, email, password) => {
+    try {
+      await auth.register(name, email, password)
+      setState((prev) => ({ ...prev, isLoggedIn: true }))
+    } catch (e) {
+      throw e
+    }
   }
 
   const logout = async () => {
-    await auth.logout()
-    setState((prev) => ({
-      ...prev,
-      isLoggedIn: false,
-    }))
+    try {
+      await auth.logout()
+      setState({ isLoggedIn: false, loading: false })
+    } catch (e) {
+      setState({ isLoggedIn: false, loading: false })
+      throw e
+    }
   }
 
   return (
@@ -58,6 +80,7 @@ export const AuthProvider = ({ children }) => {
         isLoggedIn: state.isLoggedIn,
         loading: state.loading,
         login,
+        register,
         logout,
       }}
     >

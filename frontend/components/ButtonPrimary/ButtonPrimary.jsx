@@ -1,11 +1,31 @@
-import React from 'react'
-import { TouchableOpacity, Text, StyleSheet } from 'react-native'
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native'
 import { colors } from '@assets/index'
 
-export const ButtonPrimary = ({ title, style, textStyle, onPress }) => {
+export const ButtonPrimary = ({
+  title,
+  style,
+  textStyle,
+  onPress,
+  disabled = false,
+  loading = false,
+}) => {
   return (
-    <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
-      <Text style={[styles.text, textStyle]}>{title}</Text>
+    <TouchableOpacity
+      style={[styles.button, disabled && styles.disabled, style]}
+      onPress={onPress}
+      disabled={disabled || loading}
+      activeOpacity={0.7}
+    >
+      {loading ? (
+        <ActivityIndicator color={colors.white} />
+      ) : (
+        <Text style={[styles.text, textStyle]}>{title}</Text>
+      )}
     </TouchableOpacity>
   )
 }
@@ -24,7 +44,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   text: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontFamily: 'Unbounded-Regular',
   },

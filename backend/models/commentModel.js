@@ -2,6 +2,8 @@ const db = require('../config/db')
 
 module.exports = {
   create({ post_id, author_id, text }) {
+    if (!text?.trim()) throw new Error('Comment text cannot be empty')
+
     return new Promise((resolve, reject) => {
       db.run(
         `
@@ -59,6 +61,8 @@ module.exports = {
   },
 
   update(id, author_id, text) {
+    if (!text?.trim()) throw new Error('Comment text cannot be empty')
+
     return new Promise((resolve, reject) => {
       db.run(
         `UPDATE comments SET text=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND author_id=?`,
