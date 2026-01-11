@@ -1,5 +1,7 @@
 export const backgrounds = {
   hourglass: require('./backgrounds/hourglassGradient.png'),
+  hourglassMain: require('./backgrounds/hourglassGradientMain.png'),
+  hourglassProfile: require('./backgrounds/hourglassGradientProfile.png'),
 }
 
 export const colors = {

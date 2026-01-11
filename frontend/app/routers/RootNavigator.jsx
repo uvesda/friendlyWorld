@@ -1,14 +1,9 @@
 import { NavigationContainer } from '@react-navigation/native'
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useContext } from 'react'
 import { AuthContext } from '@app/contexts/AuthContext'
-
-import MainScreen from '@screens/MainScreen/MainScreen'
 import { Loader } from '@components/Loader/Loader'
-import LoginScreen from '@screens/LoginScreen/LoginScreen'
-import RegisterScreen from '@screens/RegisterScreen/RegisterScreen'
-
-const Stack = createNativeStackNavigator()
+import AppNavigator from './AppNavigator'
+import AuthNavigator from './AuthNavigator'
 
 export default function RootNavigator() {
   const { isLoggedIn, loading } = useContext(AuthContext)
@@ -17,26 +12,7 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        {isLoggedIn ? (
-          <>
-            <Stack.Screen name="Main" component={MainScreen} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen
-              name="Login"
-              component={LoginScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Register"
-              component={RegisterScreen}
-              options={{ headerShown: false }}
-            />
-          </>
-        )}
-      </Stack.Navigator>
+      {isLoggedIn ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   )
 }

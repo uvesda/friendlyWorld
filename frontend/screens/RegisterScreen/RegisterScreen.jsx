@@ -17,6 +17,7 @@ import {
 import { useForm, Controller } from 'react-hook-form'
 import { AppText } from '@components/AppText/AppText'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 const RegisterScreen = () => {
   const [ready, setReady] = useState(false)
@@ -59,7 +60,7 @@ const RegisterScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Image
         source={backgrounds.hourglass}
         style={StyleSheet.absoluteFill}
@@ -187,7 +188,7 @@ const RegisterScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   )
 }
 

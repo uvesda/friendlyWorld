@@ -18,6 +18,7 @@ import { ButtonPrimary } from '@components/ButtonPrimary/ButtonPrimary'
 import { AppText } from '@components/AppText/AppText'
 import { useForm, Controller } from 'react-hook-form'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 const LoginScreen = ({ navigation }) => {
   const [ready, setReady] = useState(false)
@@ -66,7 +67,7 @@ const LoginScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Image
         source={backgrounds.hourglass}
         style={StyleSheet.absoluteFill}
@@ -164,7 +165,7 @@ const LoginScreen = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   )
 }
 
