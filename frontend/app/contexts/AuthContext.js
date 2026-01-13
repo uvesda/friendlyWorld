@@ -39,6 +39,7 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (e) {
+        console.error(e)
         setState({ isLoggedIn: false, loading: false })
         throw e
       }
@@ -51,6 +52,7 @@ export const AuthProvider = ({ children }) => {
       await auth.login(email, password)
       setState((prev) => ({ ...prev, isLoggedIn: true }))
     } catch (e) {
+      console.error(e)
       throw e
     }
   }
@@ -60,6 +62,7 @@ export const AuthProvider = ({ children }) => {
       await auth.register(name, email, password)
       setState((prev) => ({ ...prev, isLoggedIn: true }))
     } catch (e) {
+      console.error(e)
       throw e
     }
   }
@@ -69,6 +72,7 @@ export const AuthProvider = ({ children }) => {
       await auth.logout()
       setState({ isLoggedIn: false, loading: false })
     } catch (e) {
+      console.error(e)
       setState({ isLoggedIn: false, loading: false })
       throw e
     }

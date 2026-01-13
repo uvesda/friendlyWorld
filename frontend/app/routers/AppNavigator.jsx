@@ -1,10 +1,11 @@
-import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable'
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
+import { Image } from 'react-native'
 
-import MainScreen from '@screens/MainScreen/MainScreen'
 import ProfileScreen from '@screens/ProfileScreen/ProfileScreen'
-import { colors } from '@assets/index'
+import { colors } from '@assets'
+import PostsScreen from '@screens/PostsScreen/PostsScreen'
 
-const Tab = createNativeBottomTabNavigator()
+const Tab = createBottomTabNavigator()
 
 export default function AppNavigator() {
   return (
@@ -13,27 +14,25 @@ export default function AppNavigator() {
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: {
-          height: 64,
-          paddingBottom: 10,
-          paddingTop: 10,
+          paddingTop: 20,
           backgroundColor: colors.black,
-          borderTopWidth: 1,
         },
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tab.Screen
-        name="Home"
-        component={MainScreen}
+        name="Posts"
+        component={PostsScreen}
         options={{
-          tabBarIcon: ({ focused }) => ({
-            type: 'image',
-            source: focused
-              ? require('@assets/focused_baidu.png')
-              : require('@assets/baidu.png'),
-            tinted: false,
-          }),
-          tabBarLabelVisibilityMode: 'unlabeled',
-          title: '',
+          tabBarIcon: ({ focused }) => (
+            <Image
+              source={
+                focused
+                  ? require('@assets/focused_baidu.png')
+                  : require('@assets/baidu.png')
+              }
+            />
+          ),
         }}
       />
 
@@ -41,15 +40,15 @@ export default function AppNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarIcon: ({ focused }) => ({
-            type: 'image',
-            source: focused
-              ? require('@assets/focused_home.png')
-              : require('@assets/home.png'),
-            tinted: false,
-          }),
-          tabBarLabelVisibilityMode: 'unlabeled',
-          title: '',
+          tabBarIcon: ({ focused }) => (
+            <Image
+              source={
+                focused
+                  ? require('@assets/focused_home.png')
+                  : require('@assets/home.png')
+              }
+            />
+          ),
         }}
       />
     </Tab.Navigator>
