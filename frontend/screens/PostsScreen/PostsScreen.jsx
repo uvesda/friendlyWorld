@@ -31,15 +31,19 @@ const PostsScreen = () => {
   ])
 
   return (
-    <AppLayout
-      header={<AnimateHeader activeTab={index} onTabChange={setIndex} />}
-    >
+    <AppLayout header={null} hasHeader={false}>
       <TabView
         navigationState={{ index, routes }}
         renderScene={renderScene}
         onIndexChange={setIndex}
         initialLayout={{ width: layout.width }}
-        renderTabBar={() => null}
+        renderTabBar={(props) => (
+          <AnimateHeader
+            activeTab={index}
+            onTabChange={setIndex}
+            position={props.position}
+          />
+        )}
       />
     </AppLayout>
   )

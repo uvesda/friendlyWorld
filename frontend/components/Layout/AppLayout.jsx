@@ -11,6 +11,7 @@ const AppLayout = ({
   background = backgrounds.hourglassMain,
   scroll = false,
   header = <Header />,
+  hasHeader = true,
 }) => {
   const [ready, setReady] = useState(false)
   const ContentWrapper = scroll ? ScrollView : View
@@ -46,9 +47,10 @@ const AppLayout = ({
       <ContentWrapper
         style={[
           styles.content,
-          !scroll && {
-            paddingTop: 40 + insets.top,
-          },
+          !scroll &&
+            hasHeader && {
+              paddingTop: 40 + insets.top,
+            },
         ]}
         contentContainerStyle={
           scroll && [

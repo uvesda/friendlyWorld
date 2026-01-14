@@ -5,28 +5,25 @@ import {
   Animated,
   Image,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@assets'
 import { AppText } from '@components/AppText/AppText'
-import { useEffect, useRef } from 'react'
 
-const AnimateHeader = ({ activeTab, onTabChange }) => {
+const AnimateHeader = ({ activeTab, onTabChange, position }) => {
   const insets = useSafeAreaInsets()
-  const animatedValue = useRef(new Animated.Value(activeTab)).current
+  const { width } = useWindowDimensions()
 
-  useEffect(() => {
-    Animated.spring(animatedValue, {
-      toValue: activeTab,
-      useNativeDriver: false,
-      tension: 80,
-      friction: 10,
-    }).start()
-  }, [activeTab])
+  const HORIZONTAL_MARGIN = 60
+  const TABS_COUNT = 2
 
-  const translateX = animatedValue.interpolate({
+  const containerWidth = width - HORIZONTAL_MARGIN * 2
+  const indicatorWidth = containerWidth / TABS_COUNT - 20
+
+  const translateX = position.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: [0, indicatorWidth],
   })
 
   return (
