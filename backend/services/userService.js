@@ -11,6 +11,12 @@ module.exports = {
     return { user, myPosts, favorites }
   },
 
+  async getUserById(userId) {
+    const user = await UserModel.findById(userId)
+
+    return { user }
+  },
+
   async updateProfile(userId, data) {
     return await UserModel.updateProfile(userId, data)
   },

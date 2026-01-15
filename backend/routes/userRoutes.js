@@ -24,5 +24,6 @@ router.post(
   upload.single('avatar'),
   UserController.updateAvatar
 )
+router.get('/user/:id', auth, UserController.getUserById)
 
 module.exports = router

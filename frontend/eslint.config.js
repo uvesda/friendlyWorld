@@ -18,6 +18,9 @@ export default [
         console: 'readonly',
         process: 'readonly',
         module: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        FormData: 'readonly',
       },
     },
 

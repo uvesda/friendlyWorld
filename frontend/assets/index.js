@@ -10,6 +10,7 @@ export const colors = {
   lowOrange: '#FFCA92',
   green: '#9EB71A',
   lowGreen: '#E1D9C2',
+  yellowGreen: '#9CB900',
   beige: '#FFEEDA',
   black: '#0F0B1D',
   white: '#FFFFFF',

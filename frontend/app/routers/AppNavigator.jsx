@@ -1,13 +1,19 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { Image } from 'react-native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { Image, Platform } from 'react-native'
 
 import ProfileScreen from '@screens/ProfileScreen/ProfileScreen'
 import { colors } from '@assets'
 import PostsScreen from '@screens/PostsScreen/PostsScreen'
+import CreatePostScreen from '@screens/CreatePostScreen/CreatePostScreen'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const Tab = createBottomTabNavigator()
+const Stack = createNativeStackNavigator()
 
 export default function AppNavigator() {
+  const insets = useSafeAreaInsets()
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -16,13 +22,14 @@ export default function AppNavigator() {
         tabBarStyle: {
           paddingTop: 20,
           backgroundColor: colors.black,
+          paddingBottom: Platform.OS === 'android' ? insets.bottom : 0,
+          height: Platform.OS === 'android' ? 70 + insets.bottom : 70,
         },
         tabBarHideOnKeyboard: true,
       }}
     >
       <Tab.Screen
         name="Posts"
-        component={PostsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <Image
@@ -34,7 +41,18 @@ export default function AppNavigator() {
             />
           ),
         }}
-      />
+      >
+        {() => (
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="PostsList" component={PostsScreen} />
+            <Stack.Screen
+              name="CreatePost"
+              component={CreatePostScreen}
+              options={{ headerShown: false }}
+            />
+          </Stack.Navigator>
+        )}
+      </Tab.Screen>
 
       <Tab.Screen
         name="Profile"

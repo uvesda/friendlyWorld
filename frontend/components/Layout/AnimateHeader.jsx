@@ -11,7 +11,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@assets'
 import { AppText } from '@components/AppText/AppText'
 
-const AnimateHeader = ({ activeTab, onTabChange, position }) => {
+const AnimateHeader = ({
+  activeTab,
+  onTabChange,
+  position,
+  onPostAddPress,
+}) => {
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
 
@@ -101,7 +106,10 @@ const AnimateHeader = ({ activeTab, onTabChange, position }) => {
             <Image source={require('@assets/filter.png')} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={onPostAddPress}
+          >
             <Image source={require('@assets/post_add.png')} />
           </TouchableOpacity>
         </View>

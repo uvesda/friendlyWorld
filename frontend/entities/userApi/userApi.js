@@ -3,6 +3,8 @@ import { baseApi } from '@utils/baseApi'
 export const userApi = {
   getProfile: () => baseApi.get('/me'),
 
+  getUserById: (userId) => baseApi.get(`/user/${userId}`),
+
   updateProfile: (data) => baseApi.put('/me', data),
 
   updateAvatar: (formData) =>

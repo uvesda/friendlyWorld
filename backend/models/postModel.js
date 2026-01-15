@@ -5,6 +5,7 @@ module.exports = {
     const {
       author_id,
       status,
+      description,
       event_date,
       address,
       latitude,
@@ -26,10 +27,19 @@ module.exports = {
       db.run(
         `
         INSERT INTO posts
-        (author_id, status, event_date, address, latitude, longitude, hashtag)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (author_id, status, description, event_date, address, latitude, longitude, hashtag)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
-        [author_id, status, event_date, address, latitude, longitude, hashtag],
+        [
+          author_id,
+          status,
+          description,
+          event_date,
+          address,
+          latitude,
+          longitude,
+          hashtag,
+        ],
         function (err) {
           if (err) reject(err)
           else resolve({ id: this.lastID })
@@ -39,22 +49,25 @@ module.exports = {
   },
 
   getAll(filters = {}) {
-    let query = `SELECT * FROM posts`
+    let query = `SELECT p.*, u.name as author_name, COUNT(c.id) as comments_count 
+                 FROM posts p 
+                 JOIN users u ON u.id = p.author_id 
+                 LEFT JOIN comments c ON c.post_id = p.id`
     const params = []
     const conditions = []
 
     if (filters.status) {
-      conditions.push(`status = ?`)
+      conditions.push(`p.status = ?`)
       params.push(filters.status)
     }
 
     if (filters.hashtag) {
-      conditions.push(`hashtag LIKE ?`)
+      conditions.push(`p.hashtag LIKE ?`)
       params.push(`%${filters.hashtag}%`)
     }
 
     if (conditions.length) query += ` WHERE ` + conditions.join(' AND ')
-    query += ` ORDER BY created_at DESC`
+    query += ` GROUP BY p.id ORDER BY p.created_at DESC`
 
     return new Promise((resolve, reject) => {
       db.all(query, params, (err, rows) => {
@@ -66,17 +79,32 @@ module.exports = {
 
   getById(id) {
     return new Promise((resolve, reject) => {
-      db.get(`SELECT * FROM posts WHERE id = ?`, [id], (err, row) => {
-        if (err) reject(err)
-        else resolve(row)
-      })
+      db.get(
+        `SELECT p.*, u.name as author_name, COUNT(c.id) as comments_count 
+         FROM posts p 
+         JOIN users u ON u.id = p.author_id 
+         LEFT JOIN comments c ON c.post_id = p.id 
+         WHERE p.id = ? 
+         GROUP BY p.id`,
+        [id],
+        (err, row) => {
+          if (err) reject(err)
+          else resolve(row)
+        }
+      )
     })
   },
 
   getByAuthor(author_id) {
     return new Promise((resolve, reject) => {
       db.all(
-        `SELECT * FROM posts WHERE author_id = ? ORDER BY created_at DESC`,
+        `SELECT p.*, u.name as author_name, COUNT(c.id) as comments_count 
+         FROM posts p 
+         JOIN users u ON u.id = p.author_id 
+         LEFT JOIN comments c ON c.post_id = p.id 
+         WHERE p.author_id = ? 
+         GROUP BY p.id 
+         ORDER BY p.created_at DESC`,
         [author_id],
         (err, rows) => {
           if (err) reject(err)

@@ -12,6 +12,15 @@ module.exports = {
     }
   },
 
+  async getUserById(req, res, next) {
+    try {
+      const user = await UserService.getUserById(req.user.id)
+      success(res, user)
+    } catch (e) {
+      next(e)
+    }
+  },
+
   async updateProfile(req, res, next) {
     try {
       const result = await UserService.updateProfile(req.user.id, req.body)

@@ -32,6 +32,7 @@ function initTables() {
         author_id INTEGER NOT NULL,
 
         status TEXT CHECK(status IN ('lost', 'found')) NOT NULL,
+        description TEXT DEFAULT NULL,
 
         event_date DATETIME NOT NULL,
 

@@ -1,6 +1,11 @@
+import 'react-native-gesture-handler'
+import 'react-native-reanimated'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { AuthProvider } from './contexts/AuthContext'
 import RootNavigator from './routers/RootNavigator'
 import { useFonts } from 'expo-font'
+import { StyleSheet } from 'react-native'
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -14,8 +19,18 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <GestureHandlerRootView style={styles.container}>
+      <AuthProvider>
+        <SafeAreaProvider>
+          <RootNavigator />
+        </SafeAreaProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+})
