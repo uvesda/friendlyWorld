@@ -110,7 +110,7 @@ const ProfileScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
                 {/* Декоративные элементы */}
-                <View style={styles.badges}>
+                {/* <View style={styles.badges}>
                   <Image
                     source={require('@assets/baiduOrange.png')}
                     style={styles.badgeOrange}
@@ -119,7 +119,7 @@ const ProfileScreen = ({ navigation }) => {
                     source={require('@assets/baiduGreen.png')}
                     style={styles.badgeGreen}
                   />
-                </View>
+                </View> */}
               </View>
             </View>
           </View>
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     padding: 0,
     marginBottom: 5,
     top: 15,
-    right: 15,
+    right: 0,
   },
 
   editIcon: {
