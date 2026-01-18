@@ -30,8 +30,20 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400, // 24 часа
 }))
+
+// Обработка preflight запросов
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+  res.header('Access-Control-Max-Age', '86400')
+  res.sendStatus(200)
+})
+
 app.use(express.json())
 // Не используем express.urlencoded для multipart/form-data - multer обработает сам
 app.use(logger)

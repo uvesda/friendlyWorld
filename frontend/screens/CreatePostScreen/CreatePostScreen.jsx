@@ -75,11 +75,20 @@ const CreatePostScreen = ({ navigation }) => {
     })
 
     if (!result.canceled && result.assets) {
-      const newImages = result.assets.map((asset) => ({
-        uri: asset.uri,
-        type: asset.type || 'image',
-        name: asset.fileName || `photo_${Date.now()}.jpg`,
-      }))
+      const newImages = result.assets.map((asset) => {
+        // Определяем правильный тип файла
+        const uri = asset.uri
+        const extension = uri.split('.').pop()?.toLowerCase() || 'jpg'
+        const mimeType = extension === 'png' ? 'image/png' : 
+                        extension === 'gif' ? 'image/gif' : 
+                        extension === 'webp' ? 'image/webp' : 'image/jpeg'
+        
+        return {
+          uri: uri,
+          type: mimeType,
+          name: asset.fileName || `photo_${Date.now()}.${extension}`,
+        }
+      })
       setSelectedImages((prev) => [...prev, ...newImages].slice(0, 5))
     }
   }
@@ -144,13 +153,19 @@ const CreatePostScreen = ({ navigation }) => {
         
         selectedImages.forEach((image, index) => {
           // В React Native нужно использовать правильный формат для FormData
-          const fileExtension = image.uri?.split('.').pop() || 'jpg'
+          const fileExtension = image.uri?.split('.').pop()?.toLowerCase() || 'jpg'
           const fileName = image.name || `photo_${index}.${fileExtension}`
-          const fileType = image.type || `image/${fileExtension === 'png' ? 'png' : 'jpeg'}`
+          
+          // Используем тип из image, если есть, иначе определяем по расширению
+          const fileType = image.type || 
+            (fileExtension === 'png' ? 'image/png' : 
+             fileExtension === 'gif' ? 'image/gif' : 
+             fileExtension === 'webp' ? 'image/webp' : 'image/jpeg')
           
           // Правильный формат для React Native
+          // На Android оставляем file://, на iOS убираем
           let fileUri = image.uri
-          if (Platform.OS === 'ios' && fileUri.startsWith('file://')) {
+          if (Platform.OS === 'ios' && fileUri && fileUri.startsWith('file://')) {
             fileUri = fileUri.replace('file://', '')
           }
 
@@ -158,8 +173,10 @@ const CreatePostScreen = ({ navigation }) => {
             fileName,
             fileType,
             uri: fileUri?.substring(0, 50) + '...',
+            platform: Platform.OS,
           })
 
+          // Формат для React Native FormData
           formData.append('photos', {
             uri: fileUri,
             type: fileType,
