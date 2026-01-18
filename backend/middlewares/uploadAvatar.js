@@ -13,7 +13,7 @@ if (hasSupabaseConfig && supabase) {
   storage = multer.memoryStorage()
 } else {
   // Fallback на локальное хранилище для разработки
-  const uploadDir = path.join(__dirname, '../uploads/posts')
+  const uploadDir = path.join(__dirname, '../uploads/avatars')
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true })
   }
@@ -24,7 +24,7 @@ if (hasSupabaseConfig && supabase) {
     },
     filename: (req, file, cb) => {
       const ext = path.extname(file.originalname)
-      const filename = `post_${req.params.id}_${Date.now()}${ext}`
+      const filename = `${Date.now()}-${req.user.id}${ext}`
       cb(null, filename)
     },
   })
@@ -42,6 +42,6 @@ module.exports = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
+    fileSize: 10 * 1024 * 1024, // 10MB для аватаров
   },
 })

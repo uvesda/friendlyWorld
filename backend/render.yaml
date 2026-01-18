@@ -13,3 +13,7 @@ services:
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
+      - key: SUPABASE_URL
+        value: https://iewinrhbplslclqoswgp.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlld2lucmhicGxzbGNscW9zd2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3NjM4MTUsImV4cCI6MjA4NDMzOTgxNX0.LWUM5QlZrcVjLqzP-r276QzE4nmMCJGsj306pt1vRdY

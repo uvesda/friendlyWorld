@@ -1,6 +1,11 @@
 const UserModel = require('../models/userModel')
 const PostModel = require('../models/postModel')
 const FavoriteModel = require('../models/favoriteModel')
+const supabase = require('../config/supabase')
+const path = require('path')
+const fs = require('fs')
+
+const hasSupabaseConfig = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
 
 module.exports = {
   async getProfile(userId) {
@@ -21,11 +26,101 @@ module.exports = {
     return await UserModel.updateProfile(userId, data)
   },
 
-  async updateAvatar(userId, path) {
-    return await UserModel.updateAvatar(userId, path)
+  async updateAvatar(userId, file) {
+    let avatarPath
+
+    if (hasSupabaseConfig && supabase && file.buffer) {
+      // Загружаем в Supabase Storage
+      const ext = path.extname(file.originalname)
+      const fileName = `avatar_${userId}_${Date.now()}${ext}`
+      const filePathInStorage = `avatars/${fileName}`
+
+      // Удаляем старый аватар из Supabase, если он есть
+      const currentUser = await UserModel.findById(userId)
+      if (currentUser && currentUser.avatar && currentUser.avatar.startsWith('http')) {
+        try {
+          const urlParts = currentUser.avatar.split('/')
+          const storageIndex = urlParts.findIndex((part) => part === 'storage')
+          if (storageIndex !== -1) {
+            const publicIndex = urlParts.findIndex((part, idx) => idx > storageIndex && part === 'public')
+            if (publicIndex !== -1 && urlParts[publicIndex + 1] === 'uploads') {
+              const oldFilePathInStorage = urlParts.slice(publicIndex + 2).join('/')
+              await supabase.storage.from('uploads').remove([oldFilePathInStorage])
+            }
+          }
+        } catch (error) {
+          console.error('Error deleting old avatar from Supabase:', error)
+        }
+      }
+
+      // Загружаем новый аватар
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(filePathInStorage, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false,
+        })
+
+      if (error) {
+        console.error('Supabase upload error:', error)
+        throw new Error('FILE_UPLOAD_FAILED')
+      }
+
+      // Получаем публичный URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('uploads').getPublicUrl(filePathInStorage)
+
+      avatarPath = publicUrl
+    } else if (file.filename) {
+      // Локальное хранилище (для разработки)
+      // Удаляем старый аватар с диска, если он есть
+      const currentUser = await UserModel.findById(userId)
+      if (currentUser && currentUser.avatar && !currentUser.avatar.startsWith('http')) {
+        const oldPath = path.join(__dirname, '..', currentUser.avatar)
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath)
+        }
+      }
+
+      avatarPath = `/uploads/avatars/${file.filename}`
+    } else {
+      throw new Error('FILE_REQUIRED')
+    }
+
+    return await UserModel.updateAvatar(userId, avatarPath)
   },
 
   async deleteAvatar(userId) {
+    // Получаем текущего пользователя для удаления файла
+    const user = await UserModel.findById(userId)
+    
+    if (user && user.avatar) {
+      // Удаляем файл из Supabase или с локального диска
+      if (hasSupabaseConfig && supabase && user.avatar.startsWith('http')) {
+        // Supabase URL - удаляем из Supabase
+        try {
+          const urlParts = user.avatar.split('/')
+          const storageIndex = urlParts.findIndex((part) => part === 'storage')
+          if (storageIndex !== -1) {
+            const publicIndex = urlParts.findIndex((part, idx) => idx > storageIndex && part === 'public')
+            if (publicIndex !== -1 && urlParts[publicIndex + 1] === 'uploads') {
+              const filePathInStorage = urlParts.slice(publicIndex + 2).join('/')
+              await supabase.storage.from('uploads').remove([filePathInStorage])
+            }
+          }
+        } catch (error) {
+          console.error('Error deleting avatar from Supabase:', error)
+        }
+      } else if (!user.avatar.startsWith('http')) {
+        // Локальный путь - удаляем с диска
+        const filePath = path.join(__dirname, '..', user.avatar)
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+        }
+      }
+    }
+
     return await UserModel.deleteAvatar(userId)
   },
 

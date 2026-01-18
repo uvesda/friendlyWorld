@@ -33,8 +33,7 @@ module.exports = {
   async updateAvatar(req, res, next) {
     try {
       if (!req.file) throw new AppError('NO_FILE_UPLOADED', 400)
-      const path = `/uploads/avatars/${req.file.filename}`
-      const result = await UserService.updateAvatar(req.user.id, path)
+      const result = await UserService.updateAvatar(req.user.id, req.file)
       success(res, result)
     } catch (e) {
       next(e)
