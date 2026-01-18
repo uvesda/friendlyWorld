@@ -51,7 +51,6 @@ const SavedPostsScreen = () => {
       const ids = new Set(favoritePosts.map((post) => post.id))
       setFavoritePostIds(ids)
     } catch (e) {
-      console.error('Ошибка загрузки сохраненных постов', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setLoading(false)
@@ -175,7 +174,6 @@ const SavedPostsScreen = () => {
           onClose={handleCloseBottomSheet}
           onFavoriteToggle={() => handleFavoriteToggle(selectedPost)}
           onContactPress={() => {
-            console.log('Связаться с автором', selectedPost?.id)
           }}
           scrollToComments={scrollToComments}
         />

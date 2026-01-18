@@ -5,28 +5,25 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  Dimensions,
+  Platform,
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
 import BottomSheetModal, {
   BottomSheetScrollView,
   BottomSheetBackdrop,
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet'
 import { colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
-import { TextInputField } from '@components/TextInputField/TextInputField'
 import { ButtonPrimary } from '@components/ButtonPrimary/ButtonPrimary'
 import { userApi } from '@entities/userApi/userApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 
 const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
   const [selectedAvatar, setSelectedAvatar] = useState(null)
   const [avatarToDelete, setAvatarToDelete] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [loading, setLoading] = useState(false)
 
   const bottomSheetModalRef = useRef(null)
 
@@ -57,7 +54,6 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
   const loadUserData = useCallback(async () => {
     if (!user) return
 
-    setLoading(true)
     try {
       reset({
         name: user.name || '',
@@ -68,10 +64,7 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
       setSelectedAvatar(null)
       setAvatarToDelete(false)
     } catch (e) {
-      console.error('Ошибка загрузки данных пользователя', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
-    } finally {
-      setLoading(false)
     }
   }, [user, reset])
 
@@ -84,7 +77,6 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
           try {
             ref.snapToIndex(0)
           } catch (error) {
-            console.warn('Could not open EditUserBottomSheet:', error.message)
           }
         }
       }, 100)
@@ -139,18 +131,21 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsEditing: Platform.OS === 'ios',
+      aspect: Platform.OS === 'ios' ? [1, 1] : undefined,
       quality: 0.8,
+      selectionLimit: 1,
     })
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0]
       setSelectedAvatar({
         uri: asset.uri,
-        type: asset.type || 'image',
+        type: asset.type || 'image/jpeg',
         name: asset.fileName || `avatar_${Date.now()}.jpg`,
       })
+      // Сбрасываем флаг удаления, если пользователь выбрал новое фото
+      setAvatarToDelete(false)
     }
   }
 
@@ -238,7 +233,6 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
         },
       ])
     } catch (e) {
-      console.error('Ошибка обновления профиля', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setUploading(false)
@@ -247,14 +241,15 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
 
   if (!user) return null
 
-  const currentAvatarUri =
-    avatarToDelete || !user.avatar
-      ? null
-      : selectedAvatar
-      ? selectedAvatar.uri
-      : user.avatar
-      ? getAvatarUri(user.avatar)
-      : null
+  const currentAvatarUri = avatarToDelete
+    ? null
+    : selectedAvatar
+    ? selectedAvatar.uri
+    : user.avatar
+    ? getAvatarUri(user.avatar)
+    : null
+
+  const showRemoveButton = (selectedAvatar || (user.avatar && !avatarToDelete)) && !avatarToDelete
 
   return (
     <BottomSheetModal
@@ -268,9 +263,10 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
       backgroundStyle={styles.bottomSheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
       backdropComponent={renderBackdrop}
-      keyboardBehavior="interactive"
+      keyboardBehavior={Platform.OS === 'ios' ? 'fillParent' : 'interactive'}
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
+      enableBlurKeyboardOnGesture={true}
       animateOnMount={true}
     >
       <BottomSheetScrollView
@@ -290,12 +286,14 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
                   source={{ uri: currentAvatarUri }}
                   style={styles.avatarImage}
                 />
-                <TouchableOpacity
-                  style={styles.removeAvatarButton}
-                  onPress={removeAvatar}
-                >
-                  <AppText style={styles.removeAvatarButtonText}>✕</AppText>
-                </TouchableOpacity>
+                {showRemoveButton && (
+                  <TouchableOpacity
+                    style={styles.removeAvatarButton}
+                    onPress={removeAvatar}
+                  >
+                    <AppText style={styles.removeAvatarButtonText}>✕</AppText>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <View style={styles.avatarPlaceholder}>
@@ -323,11 +321,13 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
           rules={{ required: 'Имя обязательно' }}
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
-              <TextInputField
+              <BottomSheetTextInput
                 placeholder="Имя *"
+                placeholderTextColor={colors.gray}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                style={styles.textInput}
               />
               {errors.name && (
                 <AppText style={styles.errorText}>
@@ -351,14 +351,16 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
-              <TextInputField
+              <BottomSheetTextInput
                 placeholder="Email *"
+                placeholderTextColor={colors.gray}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
+                style={styles.textInput}
               />
               {errors.email && (
                 <AppText style={styles.errorText}>
@@ -375,14 +377,16 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
           name="oldPassword"
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
-              <TextInputField
+              <BottomSheetTextInput
                 placeholder="Старый пароль"
+                placeholderTextColor={colors.gray}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 secureTextEntry
                 autoCapitalize="none"
                 autoComplete="password"
+                style={styles.textInput}
               />
             </View>
           )}
@@ -400,14 +404,16 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
-              <TextInputField
+              <BottomSheetTextInput
                 placeholder="Новый пароль"
+                placeholderTextColor={colors.gray}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 secureTextEntry
                 autoCapitalize="none"
                 autoComplete="password-new"
+                style={styles.textInput}
               />
               {errors.newPassword && (
                 <AppText style={styles.errorText}>
@@ -441,6 +447,18 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
 }
 
 const styles = StyleSheet.create({
+  textInput: {
+    borderWidth: 1,
+    borderColor: colors.lowOrange,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    fontFamily: 'Cruinn-Regular',
+    marginBottom: 16,
+    backgroundColor: colors.white,
+    color: colors.fullBlack,
+  },
   bottomSheetBackground: {
     backgroundColor: colors.white,
     borderTopLeftRadius: 20,

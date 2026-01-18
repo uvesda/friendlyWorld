@@ -4,11 +4,15 @@ import {
   Image,
   TouchableOpacity,
   useWindowDimensions,
+  Alert,
 } from 'react-native'
 import { useContext } from 'react'
+import { useNavigation } from '@react-navigation/native'
 import { colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
 import { AuthContext } from '@app/contexts/AuthContext'
+import { chatApi } from '@entities/chatApi/chatApi'
+import { getServerErrorMessage } from '@utils/getServerErrorMessage'
 
 const MAX_DESCRIPTION_LENGTH = 100
 const NARROW_SCREEN_WIDTH = 360
@@ -28,6 +32,7 @@ const PostCard = ({
   const isNarrowScreen = screenWidth < NARROW_SCREEN_WIDTH
   const { user: currentUser } = useContext(AuthContext)
   const currentUserId = currentUser?.id || null
+  const navigation = useNavigation()
 
   const isMyPost = () => {
     if (!currentUserId || !post?.author_id) {
@@ -160,7 +165,7 @@ const PostCard = ({
                   ]}
                 >
                   <AppText style={styles.hashtagText}>
-                    {post.status === 'lost' ? '#потерян' : '#найден'}
+                    {post.status === 'lost' ? 'потерян' : 'найден'}
                   </AppText>
                 </View>
               </View>
@@ -184,8 +189,24 @@ const PostCard = ({
                   styles.contactButton,
                   isNarrowScreen && styles.contactButtonNarrow,
                 ]}
-                onPress={(e) => {
+                onPress={async (e) => {
                   e.stopPropagation()
+                  try {
+                    const response = await chatApi.createOrGetChat(post.id)
+                    const chat = response.data || response
+                    navigation.navigate('Chat', {
+                      screen: 'ChatDetail',
+                      params: {
+                        chatId: chat.id,
+                        otherUser: {
+                          other_user_name: post.author_name,
+                          other_user_avatar: post.author?.avatar,
+                        },
+                      },
+                    })
+                  } catch (e) {
+                    Alert.alert('Ошибка', getServerErrorMessage(e))
+                  }
                   onContactPress?.()
                 }}
               >

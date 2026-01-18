@@ -17,10 +17,10 @@ import MapView, { Marker } from 'react-native-maps'
 import BottomSheetModal, {
   BottomSheetScrollView,
   BottomSheetBackdrop,
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet'
 import { colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
-import { TextInputField } from '@components/TextInputField/TextInputField'
 import { ButtonPrimary } from '@components/ButtonPrimary/ButtonPrimary'
 import { postApi } from '@entities/postApi/postApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
@@ -130,7 +130,6 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
 
       setSelectedImages([])
     } catch (e) {
-      console.error('Ошибка загрузки данных поста', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setLoading(false)
@@ -146,10 +145,6 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
           try {
             ref.present()
           } catch (error) {
-            console.warn(
-              'Could not present EditPostBottomSheet:',
-              error.message
-            )
           }
         }
       }, 300)
@@ -289,8 +284,7 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
       if (deletedPhotoIds.length > 0) {
         await Promise.all(
           deletedPhotoIds.map((photoId) =>
-            postApi.deletePhoto(post.id, photoId).catch((e) => {
-              console.error(`Ошибка удаления фотографии ${photoId}:`, e)
+            postApi.deletePhoto(post.id, photoId).catch(() => {
             })
           )
         )
@@ -324,7 +318,6 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
         },
       ])
     } catch (e) {
-      console.error('Ошибка обновления поста', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setUploading(false)
@@ -349,9 +342,10 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
       backgroundStyle={styles.bottomSheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
       backdropComponent={renderBackdrop}
-      keyboardBehavior="interactive"
+      keyboardBehavior={Platform.OS === 'ios' ? 'fillParent' : 'interactive'}
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
+      enableBlurKeyboardOnGesture={true}
       enableContentPanningGesture={true}
       enableHandlePanningGesture={true}
       animateOnMount={true}
@@ -410,14 +404,15 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
           rules={{ required: 'Описание обязательно' }}
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
-              <TextInputField
+              <BottomSheetTextInput
                 placeholder="Описание"
+                placeholderTextColor={colors.gray}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 multiline
                 numberOfLines={4}
-                style={styles.descriptionInput}
+                style={[styles.textInput, styles.descriptionInput]}
               />
               {errors.description && (
                 <AppText style={styles.errorText}>
@@ -546,11 +541,13 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
           rules={{ required: 'Адрес обязателен' }}
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
-              <TextInputField
+              <BottomSheetTextInput
                 placeholder="Адрес *"
+                placeholderTextColor={colors.gray}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                style={styles.textInput}
               />
               {errors.address && (
                 <AppText style={styles.errorText}>
@@ -679,11 +676,13 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
           rules={{ required: 'Хештег обязателен' }}
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
-              <TextInputField
+              <BottomSheetTextInput
                 placeholder="Хештег *"
+                placeholderTextColor={colors.gray}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                style={styles.textInput}
               />
               {errors.hashtag && (
                 <AppText style={styles.errorText}>
@@ -766,6 +765,18 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
 }
 
 const styles = StyleSheet.create({
+  textInput: {
+    borderWidth: 1,
+    borderColor: colors.lowOrange,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    fontFamily: 'Cruinn-Regular',
+    marginBottom: 16,
+    backgroundColor: colors.white,
+    color: colors.fullBlack,
+  },
   bottomSheetBackground: {
     backgroundColor: colors.white,
     borderTopLeftRadius: 20,

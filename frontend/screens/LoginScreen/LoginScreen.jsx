@@ -55,12 +55,12 @@ const LoginScreen = ({ navigation }) => {
     }
   }
 
-  const handleForgotPassword = () => {
-    Alert.alert(
-      'Восстановление пароля',
-      'Функция восстановления пароля будет добавлена позже'
-    )
-  }
+  // const handleForgotPassword = () => {
+  //   Alert.alert(
+  //     'Восстановление пароля',
+  //     'Функция восстановления пароля будет добавлена позже'
+  //   )
+  // }
 
   const handleCreateAccount = () => {
     navigation.navigate('Register')
@@ -133,7 +133,7 @@ const LoginScreen = ({ navigation }) => {
               </AppText>
             )}
 
-            <View style={styles.forgotPasswordContainer}>
+            {/* <View style={styles.forgotPasswordContainer}>
               <AppText style={styles.forgotPasswordText}>
                 Забыли пароль?{' '}
               </AppText>
@@ -142,7 +142,7 @@ const LoginScreen = ({ navigation }) => {
                   Нажмите сюда
                 </AppText>
               </TouchableOpacity>
-            </View>
+            </View> */}
 
             <ButtonPrimary
               title="Войти"

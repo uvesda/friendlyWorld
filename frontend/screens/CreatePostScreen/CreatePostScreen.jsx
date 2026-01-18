@@ -100,11 +100,6 @@ const CreatePostScreen = ({ navigation }) => {
   }
 
   const onSubmit = async (data) => {
-    if (selectedImages.length === 0) {
-      Alert.alert('Ошибка', 'Добавьте хотя бы одну фотографию')
-      return
-    }
-
     if (!data.latitude || !data.longitude) {
       Alert.alert('Ошибка', 'Выберите место на карте')
       return
@@ -129,16 +124,18 @@ const CreatePostScreen = ({ navigation }) => {
         throw new Error('Не удалось получить ID созданного поста')
       }
 
-      const formData = new FormData()
-      selectedImages.forEach((image, index) => {
-        formData.append('photos', {
-          uri: image.uri,
-          type: image.type || 'image/jpeg',
-          name: image.name || `photo_${index}.jpg`,
+      if (selectedImages.length > 0) {
+        const formData = new FormData()
+        selectedImages.forEach((image, index) => {
+          formData.append('photos', {
+            uri: image.uri,
+            type: image.type || 'image/jpeg',
+            name: image.name || `photo_${index}.jpg`,
+          })
         })
-      })
 
-      await postApi.uploadPhotos(postId, formData)
+        await postApi.uploadPhotos(postId, formData)
+      }
 
       Alert.alert('Успех', 'Пост успешно создан', [
         {
@@ -149,7 +146,6 @@ const CreatePostScreen = ({ navigation }) => {
         },
       ])
     } catch (e) {
-      console.error('Ошибка создания поста', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setUploading(false)

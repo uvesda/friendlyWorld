@@ -29,7 +29,6 @@ export const auth = {
       try {
         await authApi.logout(refreshToken)
       } catch (e) {
-        console.error('Logout API error:', e)
       }
     }
     await tokenStorage.clear()

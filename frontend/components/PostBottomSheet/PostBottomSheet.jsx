@@ -12,17 +12,20 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  TextInput,
   Dimensions,
   Alert,
+  Platform,
 } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
 import BottomSheet, {
   BottomSheetScrollView,
   BottomSheetBackdrop,
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet'
 import { colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
 import { postApi } from '@entities/postApi/postApi'
+import { chatApi } from '@entities/chatApi/chatApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
 import ImageViewer from '@components/ImageViewer/ImageViewer'
 import CommentActionBottomSheet from '@components/CommentActionBottomSheet/CommentActionBottomSheet'
@@ -51,9 +54,11 @@ const PostBottomSheet = ({
   const bottomSheetRef = useRef(null)
   const scrollViewRef = useRef(null)
   const commentsRef = useRef(null)
+  const commentInputRef = useRef(null)
 
   const { user: currentUser } = useContext(AuthContext)
   const currentUserId = currentUser?.id || null
+  const navigation = useNavigation()
 
   const snapPoints = useMemo(() => [SCREEN_HEIGHT * 0.9], [])
 
@@ -77,7 +82,6 @@ const PostBottomSheet = ({
       setPhotos(photos)
       setComments(comments)
     } catch (e) {
-      console.error('Ошибка загрузки данных поста', e)
     } finally {
       setLoading(false)
     }
@@ -294,11 +298,20 @@ const PostBottomSheet = ({
         handleIndicatorStyle={styles.handleIndicator}
         backdropComponent={renderBackdrop}
         style={styles.bottomSheet}
+        keyboardBehavior={Platform.OS === 'ios' ? 'fillParent' : 'interactive'}
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
+        enableBlurKeyboardOnGesture={false}
+        enableContentPanningGesture={true}
+        enableHandlePanningGesture={true}
       >
         <BottomSheetScrollView
           ref={scrollViewRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+          nestedScrollEnabled={true}
         >
           {/* Фотографии */}
           {photos.length > 0 && (
@@ -365,7 +378,7 @@ const PostBottomSheet = ({
                     ]}
                   >
                     <AppText style={styles.hashtagText}>
-                      {post.status === 'lost' ? '#потерян' : '#найден'}
+                      {post.status === 'lost' ? 'потерян' : 'найден'}
                     </AppText>
                   </View>
                 </View>
@@ -388,7 +401,27 @@ const PostBottomSheet = ({
               {!isMy && (
                 <TouchableOpacity
                   style={styles.contactButton}
-                  onPress={onContactPress}
+                  onPress={async () => {
+                    try {
+                      if (onContactPress) {
+                        onContactPress()
+                      }
+                      const response = await chatApi.createOrGetChat(post.id)
+                      const chat = response.data || response
+                      navigation.navigate('Chat', {
+                        screen: 'ChatDetail',
+                        params: {
+                          chatId: chat.id,
+                          otherUser: {
+                            other_user_name: post.author_name,
+                            other_user_avatar: post.author?.avatar,
+                          },
+                        },
+                      })
+                    } catch (e) {
+                      Alert.alert('Ошибка', getServerErrorMessage(e))
+                    }
+                  }}
                 >
                   <AppText style={styles.contactButtonText}>Связаться</AppText>
                 </TouchableOpacity>
@@ -438,14 +471,45 @@ const PostBottomSheet = ({
               })}
 
               {/* Форма добавления комментария */}
-              <View style={styles.commentInputContainer}>
-                <TextInput
+              <View style={styles.commentInputContainer} ref={commentInputRef}>
+                <BottomSheetTextInput
                   style={styles.commentInput}
                   placeholder="Написать комментарий..."
                   placeholderTextColor={colors.gray}
                   value={commentText}
                   onChangeText={setCommentText}
                   multiline
+                  onFocus={() => {
+                    setTimeout(() => {
+                      if (commentInputRef.current && scrollViewRef.current) {
+                        commentInputRef.current.measureLayout(
+                          scrollViewRef.current,
+                          (x, y) => {
+                            if (scrollViewRef.current) {
+                              scrollViewRef.current.scrollTo({
+                                y: Math.max(0, y - 150),
+                                animated: true,
+                              })
+                            }
+                          },
+                          () => {
+                            // Fallback: прокручиваем в конец
+                            setTimeout(() => {
+                              scrollViewRef.current?.scrollToEnd({
+                                animated: true,
+                              })
+                            }, 200)
+                          }
+                        )
+                      } else if (scrollViewRef.current) {
+                        setTimeout(() => {
+                          scrollViewRef.current?.scrollToEnd({
+                            animated: true,
+                          })
+                        }, 300)
+                      }
+                    }, 300)
+                  }}
                 />
                 <TouchableOpacity
                   style={[
@@ -497,7 +561,7 @@ const styles = StyleSheet.create({
     height: 4,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   photosContainer: {
     height: 300,
@@ -642,6 +706,7 @@ const styles = StyleSheet.create({
   },
   commentInputContainer: {
     marginTop: 16,
+    marginBottom: 20,
   },
   commentInput: {
     borderWidth: 1,

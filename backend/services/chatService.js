@@ -26,10 +26,75 @@ module.exports = {
       throw new AppError(ERRORS.INVALID_INPUT, 400)
     }
 
-    const existingChat = await ChatModel.findChat(postId, user1, user2)
-    if (existingChat) return existingChat
+    // First check if there's already a chat between these users (regardless of post)
+    const existingChatByUsers = await ChatModel.findChatByUsers(user1, user2)
+    if (existingChatByUsers) {
+      // Also create/update chat_users entries if they don't exist
+      await this.ensureChatUsersEntries(existingChatByUsers.id, user1, user2)
+      return existingChatByUsers
+    }
 
-    return await ChatModel.createChat(postId, user1, user2)
+    // Check if there's a chat for this specific post
+    const existingChat = await ChatModel.findChat(postId, user1, user2)
+    if (existingChat) {
+      await this.ensureChatUsersEntries(existingChat.id, user1, user2)
+      return existingChat
+    }
+
+    // Create new chat
+    const newChat = await ChatModel.createChat(postId, user1, user2)
+    // Create chat_users entries
+    await this.ensureChatUsersEntries(newChat.id, user1, user2)
+    return newChat
+  },
+
+  async ensureChatUsersEntries(chatId, user1, user2) {
+    // Ensure chat_users entries exist for both users and restore if deleted
+    // First, try to update existing records (restore if deleted)
+    await new Promise((res, rej) => {
+      db.run(
+        `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
+        [chatId, user1],
+        function (err) {
+          if (err) {
+            rej(err)
+            return
+          }
+          // If no rows were updated, insert a new record
+          if (this.changes === 0) {
+            db.run(
+              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+              [chatId, user1],
+              (insertErr) => (insertErr ? rej(insertErr) : res())
+            )
+          } else {
+            res()
+          }
+        }
+      )
+    })
+    await new Promise((res, rej) => {
+      db.run(
+        `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
+        [chatId, user2],
+        function (err) {
+          if (err) {
+            rej(err)
+            return
+          }
+          // If no rows were updated, insert a new record
+          if (this.changes === 0) {
+            db.run(
+              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+              [chatId, user2],
+              (insertErr) => (insertErr ? rej(insertErr) : res())
+            )
+          } else {
+            res()
+          }
+        }
+      )
+    })
   },
 
   async getUserChats(userId) {
@@ -56,6 +121,57 @@ module.exports = {
       throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
 
+    // Determine the recipient
+    const recipientId = chat.user1_id === senderId ? chat.user2_id : chat.user1_id
+
+    // Restore chat for recipient if they deleted it
+    await new Promise((res, rej) => {
+      db.run(
+        `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
+        [chatId, recipientId],
+        function (err) {
+          if (err) {
+            rej(err)
+            return
+          }
+          // If no rows were updated, insert a new record
+          if (this.changes === 0) {
+            db.run(
+              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+              [chatId, recipientId],
+              (insertErr) => (insertErr ? rej(insertErr) : res())
+            )
+          } else {
+            res()
+          }
+        }
+      )
+    })
+
+    // Also restore chat for sender if they deleted it
+    await new Promise((res, rej) => {
+      db.run(
+        `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
+        [chatId, senderId],
+        function (err) {
+          if (err) {
+            rej(err)
+            return
+          }
+          // If no rows were updated, insert a new record
+          if (this.changes === 0) {
+            db.run(
+              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+              [chatId, senderId],
+              (insertErr) => (insertErr ? rej(insertErr) : res())
+            )
+          } else {
+            res()
+          }
+        }
+      )
+    })
+
     return await MessageModel.sendMessage(chatId, senderId, text)
   },
 
@@ -71,20 +187,60 @@ module.exports = {
       throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
 
-    return await MessageModel.getMessages(chatId)
+    return await MessageModel.getMessages(chatId, userId)
+  },
+
+  async markMessagesAsRead(chatId, userId) {
+    const chat = await new Promise((res, rej) =>
+      db.get(
+        `SELECT * FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)`,
+        [chatId, userId, userId],
+        (err, row) => (err ? rej(err) : res(row))
+      )
+    )
+    if (!chat) {
+      throw new AppError(ERRORS.NO_PERMISSION, 403)
+    }
+
+    return await MessageModel.markMessagesAsRead(chatId, userId)
   },
 
   async deleteChatForUser(userId, chatId) {
-    await new Promise((res, rej) =>
+    // Ensure chat_users entry exists, then mark as deleted
+    await new Promise((res, rej) => {
+      // First try to update existing record
       db.run(
         `UPDATE chat_users SET deleted=1 WHERE chat_id=? AND user_id=?`,
         [chatId, userId],
         function (err) {
-          if (err) rej(err)
-          else res()
+          if (err) {
+            rej(err)
+            return
+          }
+          // If no rows were updated, insert a new record with deleted=1
+          if (this.changes === 0) {
+            db.run(
+              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 1)`,
+              [chatId, userId],
+              function (insertErr) {
+                if (insertErr) {
+                  // If insert fails (e.g., constraint violation), try update again
+                  db.run(
+                    `UPDATE chat_users SET deleted=1 WHERE chat_id=? AND user_id=?`,
+                    [chatId, userId],
+                    (updateErr) => (updateErr ? rej(updateErr) : res())
+                  )
+                } else {
+                  res()
+                }
+              }
+            )
+          } else {
+            res()
+          }
         }
       )
-    )
+    })
   },
 
   async deleteMessage(userId, messageId) {

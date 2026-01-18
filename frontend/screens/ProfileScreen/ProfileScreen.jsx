@@ -1,6 +1,13 @@
 import { backgrounds, colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
-import { Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native'
+import {
+  Alert,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  Platform,
+} from 'react-native'
 import AppLayout from '@components/Layout/AppLayout'
 import { useContext, useEffect, useState } from 'react'
 import { Audio } from 'expo-av'
@@ -21,7 +28,6 @@ const ProfileScreen = ({ navigation }) => {
         const data = await userApi.getProfile()
         setProfile(data)
       } catch (e) {
-        console.error('Ошибка загрузки профиля', e)
         Alert.alert('Ошибка', getServerErrorMessage(e))
       }
     }
@@ -41,7 +47,6 @@ const ProfileScreen = ({ navigation }) => {
 
     sound.setOnPlaybackStatusUpdate(async (status) => {
       if (status.didJustFinish) {
-        console.log('Выход из приложения')
         sound.unloadAsync()
         await logout()
       }
@@ -183,7 +188,6 @@ const ProfileScreen = ({ navigation }) => {
             const data = await userApi.getProfile()
             setProfile(data)
           } catch (e) {
-            console.error('Ошибка загрузки профиля', e)
           }
         }}
       />
@@ -203,18 +207,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 20,
     flexDirection: 'row',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: Platform.OS === 'ios' ? 24 : 20,
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 20,
     alignItems: 'flex-start',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
 
   avatarContainer: {
-    marginRight: 16,
+    marginRight: Platform.OS === 'ios' ? 12 : 16,
   },
 
   avatarImage: {
@@ -229,7 +234,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
     justifyContent: 'space-between',
-    minHeight: 100,
+    minHeight: Platform.OS === 'ios' ? 110 : 100,
   },
 
   userNameRow: {
@@ -240,22 +245,24 @@ const styles = StyleSheet.create({
 
   userNameContainer: {
     flex: 1,
-    marginRight: 12,
+    marginRight: Platform.OS === 'ios' ? 8 : 12,
+    minWidth: Platform.OS === 'ios' ? 0 : undefined,
   },
 
   rightSection: {
     flexDirection: 'column',
     alignItems: 'flex-end',
     justifyContent: 'flex-start',
+    minWidth: Platform.OS === 'ios' ? 50 : undefined,
   },
 
   userNameBorder: {
     borderRadius: 12,
     borderWidth: 3,
     borderColor: colors.green,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minHeight: 48,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 16,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
+    minHeight: Platform.OS === 'ios' ? 56 : 48,
     justifyContent: 'center',
     backgroundColor: colors.white,
     position: 'relative',
@@ -266,7 +273,7 @@ const styles = StyleSheet.create({
     color: colors.fullBlack,
     fontFamily: 'Cruinn-Regular',
     lineHeight: 20,
-    paddingRight: 80,
+    paddingRight: Platform.OS === 'ios' ? 60 : 80,
   },
 
   userNameLabelContainer: {
@@ -303,7 +310,7 @@ const styles = StyleSheet.create({
   },
 
   badgeOrange: {
-    top: 30,
+    top: Platform.OS === 'ios' ? 40 : 30,
     right: 40,
   },
 

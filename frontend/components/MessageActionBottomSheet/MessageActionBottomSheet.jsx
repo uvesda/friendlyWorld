@@ -12,29 +12,29 @@ import BottomSheetModal, {
 } from '@gorhom/bottom-sheet'
 import { colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
-import { postApi } from '@entities/postApi/postApi'
+import { chatApi } from '@entities/chatApi/chatApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
 
-const CommentActionBottomSheet = ({
-  comment,
+const MessageActionBottomSheet = ({
+  message,
   visible,
   onClose,
-  onCommentUpdated,
+  onMessageUpdated,
 }) => {
-  const [editingComment, setEditingComment] = useState(null)
-  const [editCommentText, setEditCommentText] = useState('')
+  const [editingMessage, setEditingMessage] = useState(null)
+  const [editMessageText, setEditMessageText] = useState('')
   const bottomSheetModalRef = useRef(null)
 
   const snapPoints = useMemo(() => {
-    return editingComment ? [300] : [200]
-  }, [editingComment])
+    return editingMessage ? [300] : [200]
+  }, [editingMessage])
 
   const handleSheetChanges = useCallback(
     (index) => {
       if (index === -1) {
         onClose?.()
-        setEditingComment(null)
-        setEditCommentText('')
+        setEditingMessage(null)
+        setEditMessageText('')
       }
     },
     [onClose]
@@ -42,8 +42,8 @@ const CommentActionBottomSheet = ({
 
   const handleDismiss = useCallback(() => {
     onClose?.()
-    setEditingComment(null)
-    setEditCommentText('')
+    setEditingMessage(null)
+    setEditMessageText('')
   }, [onClose])
 
   const renderBackdrop = useCallback(
@@ -62,7 +62,7 @@ const CommentActionBottomSheet = ({
   useEffect(() => {
     if (!bottomSheetModalRef.current) return
 
-    if (visible && comment) {
+    if (visible && message) {
       const timeoutId = setTimeout(() => {
         const ref = bottomSheetModalRef.current
         if (ref && typeof ref.present === 'function') {
@@ -81,14 +81,14 @@ const CommentActionBottomSheet = ({
         } catch {}
       }
     }
-  }, [visible, comment])
+  }, [visible, message])
 
-  const handleDeleteComment = async () => {
-    if (!comment?.id) return
+  const handleDeleteMessage = async () => {
+    if (!message?.id) return
 
     Alert.alert(
-      'Удалить комментарий',
-      'Вы уверены, что хотите удалить этот комментарий?',
+      'Удалить сообщение',
+      'Вы уверены, что хотите удалить это сообщение?',
       [
         { text: 'Отмена', style: 'cancel' },
         {
@@ -96,14 +96,14 @@ const CommentActionBottomSheet = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              await postApi.deleteComment(comment.id)
+              await chatApi.deleteMessage(message.id)
               if (
                 bottomSheetModalRef.current &&
                 typeof bottomSheetModalRef.current.dismiss === 'function'
               ) {
                 bottomSheetModalRef.current.dismiss()
               }
-              onCommentUpdated?.()
+              onMessageUpdated?.()
             } catch (e) {
               Alert.alert('Ошибка', getServerErrorMessage(e))
             }
@@ -113,32 +113,32 @@ const CommentActionBottomSheet = ({
     )
   }
 
-  const handleEditComment = () => {
-    if (!comment) return
-    setEditingComment(comment)
-    setEditCommentText(comment.text)
+  const handleEditMessage = () => {
+    if (!message) return
+    setEditingMessage(message)
+    setEditMessageText(message.text)
   }
 
-  const handleSaveEditComment = async () => {
-    if (!editingComment?.id || !editCommentText.trim()) return
+  const handleSaveEditMessage = async () => {
+    if (!editingMessage?.id || !editMessageText.trim()) return
 
     try {
-      await postApi.editComment(editingComment.id, editCommentText.trim())
+      await chatApi.editMessage(editingMessage.id, editMessageText.trim())
       if (
         bottomSheetModalRef.current &&
         typeof bottomSheetModalRef.current.dismiss === 'function'
       ) {
         bottomSheetModalRef.current.dismiss()
       }
-      setEditingComment(null)
-      setEditCommentText('')
-      onCommentUpdated?.()
+      setEditingMessage(null)
+      setEditMessageText('')
+      onMessageUpdated?.()
     } catch (e) {
       Alert.alert('Ошибка', getServerErrorMessage(e))
     }
   }
 
-  if (!comment) return null
+  if (!message) return null
 
   return (
     <BottomSheetModal
@@ -158,14 +158,14 @@ const CommentActionBottomSheet = ({
       enableBlurKeyboardOnGesture={true}
     >
       <View style={styles.content}>
-        {editingComment ? (
+        {editingMessage ? (
           <>
             <BottomSheetTextInput
-              style={styles.editCommentInput}
-              placeholder="Редактировать комментарий..."
+              style={styles.editMessageInput}
+              placeholder="Редактировать сообщение..."
               placeholderTextColor={colors.gray}
-              value={editCommentText}
-              onChangeText={setEditCommentText}
+              value={editMessageText}
+              onChangeText={setEditMessageText}
               multiline
               autoFocus
             />
@@ -173,8 +173,8 @@ const CommentActionBottomSheet = ({
               <TouchableOpacity
                 style={[styles.actionButton, styles.cancelButton]}
                 onPress={() => {
-                  setEditingComment(null)
-                  setEditCommentText('')
+                  setEditingMessage(null)
+                  setEditMessageText('')
                 }}
               >
                 <AppText style={styles.cancelButtonText}>Отмена</AppText>
@@ -183,10 +183,10 @@ const CommentActionBottomSheet = ({
                 style={[
                   styles.actionButton,
                   styles.saveButton,
-                  !editCommentText.trim() && styles.saveButtonDisabled,
+                  !editMessageText.trim() && styles.saveButtonDisabled,
                 ]}
-                onPress={handleSaveEditComment}
-                disabled={!editCommentText.trim()}
+                onPress={handleSaveEditMessage}
+                disabled={!editMessageText.trim()}
               >
                 <AppText style={styles.saveButtonText}>Сохранить</AppText>
               </TouchableOpacity>
@@ -196,13 +196,13 @@ const CommentActionBottomSheet = ({
           <>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={handleEditComment}
+              onPress={handleEditMessage}
             >
               <AppText style={styles.actionButtonText}>Редактировать</AppText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.deleteButton]}
-              onPress={handleDeleteComment}
+              onPress={handleDeleteMessage}
             >
               <AppText style={styles.deleteButtonText}>Удалить</AppText>
             </TouchableOpacity>
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: 'Unbounded-Regular',
   },
-  editCommentInput: {
+  editMessageInput: {
     borderWidth: 1,
     borderColor: colors.lowGreen,
     borderRadius: 12,
@@ -292,4 +292,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default CommentActionBottomSheet
+export default MessageActionBottomSheet
