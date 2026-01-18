@@ -142,26 +142,36 @@ const CreatePostScreen = ({ navigation }) => {
             uri: Platform.OS === 'android' ? image.uri : image.uri.replace('file://', ''),
             type: fileType,
             name: fileName,
-          } as any)
+          })
         })
 
         console.log('Uploading photos:', {
           postId: createdPostId,
           imagesCount: selectedImages.length,
+          baseURL: process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000',
         })
 
         try {
-          await postApi.uploadPhotos(createdPostId, formData)
-          console.log('Photos uploaded successfully')
+          const uploadResponse = await postApi.uploadPhotos(createdPostId, formData)
+          console.log('✅ Photos uploaded successfully:', uploadResponse)
         } catch (uploadError) {
-          console.error('Photo upload error:', uploadError)
+          console.error('❌ Photo upload error:', uploadError)
+          console.error('Error message:', uploadError?.message)
+          console.error('Error response:', uploadError?.response?.data)
+          console.error('Error status:', uploadError?.response?.status)
+          console.error('Error config:', {
+            url: uploadError?.config?.url,
+            method: uploadError?.config?.method,
+            baseURL: uploadError?.config?.baseURL,
+          })
+          
           // Если загрузка фото не удалась, удаляем созданный пост
           if (createdPostId) {
             try {
               await postApi.delete(createdPostId)
-              console.log('Post deleted after photo upload failure')
+              console.log('✅ Post deleted after photo upload failure')
             } catch (deleteError) {
-              console.error('Error deleting post after photo upload failure:', deleteError)
+              console.error('❌ Error deleting post after photo upload failure:', deleteError)
             }
           }
           throw uploadError

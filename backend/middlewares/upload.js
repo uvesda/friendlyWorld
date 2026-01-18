@@ -7,7 +7,9 @@ const supabase = require('../config/supabase')
 const hasSupabaseConfig = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
 
 console.log('=== UPLOAD MIDDLEWARE INIT ===')
-console.log('hasSupabaseConfig:', hasSupabaseConfig)
+console.log('hasSupabaseConfig:', !!hasSupabaseConfig)
+console.log('SUPABASE_URL exists:', !!process.env.SUPABASE_URL)
+console.log('SUPABASE_ANON_KEY exists:', !!process.env.SUPABASE_ANON_KEY)
 console.log('supabase exists:', !!supabase)
 console.log('==============================')
 

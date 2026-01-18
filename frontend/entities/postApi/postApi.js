@@ -20,13 +20,16 @@ export const postApi = {
 
   getPhotos: (postId) => baseApi.get(`/posts/${postId}/photos`),
 
-  uploadPhotos: (postId, formData) =>
-    baseApi.post(`/posts/${postId}/photos`, formData, {
+  uploadPhotos: (postId, formData) => {
+    // В React Native не нужно явно указывать Content-Type для FormData
+    // axios автоматически установит правильный заголовок с boundary
+    return baseApi.post(`/posts/${postId}/photos`, formData, {
+      timeout: 60000, // 60 секунд для загрузки файлов
       headers: {
-        'Content-Type': 'multipart/form-data',
+        // Не указываем Content-Type - axios установит автоматически
       },
-      timeout: 30000, // 30 секунд для загрузки файлов
-    }),
+    })
+  },
 
   deletePhoto: (postId, photoId) =>
     baseApi.delete(`/posts/${postId}/photos/${photoId}`),

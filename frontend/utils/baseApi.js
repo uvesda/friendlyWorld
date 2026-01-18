@@ -3,7 +3,7 @@ import { tokenStorage } from './tokenStorage'
 
 export const baseApi = axios.create({
   baseURL: process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000',
-  timeout: 5000,
+  timeout: 30000, // Увеличиваем таймаут до 30 секунд
 })
 
 const refreshApi = axios.create({
