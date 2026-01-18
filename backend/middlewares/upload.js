@@ -6,11 +6,17 @@ const supabase = require('../config/supabase')
 // Проверяем, настроен ли Supabase
 const hasSupabaseConfig = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
 
+console.log('=== UPLOAD MIDDLEWARE INIT ===')
+console.log('hasSupabaseConfig:', hasSupabaseConfig)
+console.log('supabase exists:', !!supabase)
+console.log('==============================')
+
 let storage
 
 if (hasSupabaseConfig && supabase) {
   // Используем memory storage для Supabase (файлы будут загружены в облако)
   storage = multer.memoryStorage()
+  console.log('✅ Using memory storage (Supabase)')
 } else {
   // Fallback на локальное хранилище для разработки
   const uploadDir = path.join(__dirname, '../uploads/posts')
@@ -31,11 +37,11 @@ if (hasSupabaseConfig && supabase) {
 }
 
 const fileFilter = (req, file, cb) => {
-  console.log('File filter:', {
-    fieldname: file.fieldname,
-    originalname: file.originalname,
-    mimetype: file.mimetype,
-  })
+  console.log('=== FILE FILTER ===')
+  console.log('Fieldname:', file.fieldname)
+  console.log('Originalname:', file.originalname)
+  console.log('Mimetype:', file.mimetype)
+  console.log('===================')
 
   if (!file.mimetype || !file.mimetype.startsWith('image/')) {
     console.error('Invalid file type:', file.mimetype)

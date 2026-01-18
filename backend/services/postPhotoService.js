@@ -27,15 +27,17 @@ module.exports = {
     for (const file of files) {
       let filePath
 
-      console.log('Processing file:', {
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-        hasBuffer: !!file.buffer,
-        hasFilename: !!file.filename,
-        hasSupabaseConfig,
-        supabaseExists: !!supabase,
-      })
+      console.log('=== PROCESSING FILE ===')
+      console.log('Originalname:', file.originalname)
+      console.log('Mimetype:', file.mimetype)
+      console.log('Size:', file.size)
+      console.log('Has buffer:', !!file.buffer)
+      console.log('Buffer length:', file.buffer?.length || 0)
+      console.log('Has filename:', !!file.filename)
+      console.log('Filename:', file.filename)
+      console.log('hasSupabaseConfig:', hasSupabaseConfig)
+      console.log('supabase exists:', !!supabase)
+      console.log('=======================')
 
       if (hasSupabaseConfig && supabase && file.buffer) {
         // Загружаем в Supabase Storage
@@ -57,19 +59,29 @@ module.exports = {
           })
 
         if (error) {
-          console.error('Supabase upload error:', error)
+          console.error('❌ Supabase upload error:', error)
+          console.error('Error code:', error.statusCode)
+          console.error('Error message:', error.message)
           console.error('Error details:', JSON.stringify(error, null, 2))
-          throw new AppError('FILE_UPLOAD_FAILED', 500, error.message)
+          throw new AppError('FILE_UPLOAD_FAILED', 500, error.message || 'Failed to upload to Supabase')
         }
 
-        console.log('File uploaded successfully to Supabase:', data)
+        if (!data) {
+          console.error('❌ No data returned from Supabase upload')
+          throw new AppError('FILE_UPLOAD_FAILED', 500, 'No data returned from Supabase')
+        }
+
+        console.log('✅ File uploaded successfully to Supabase:', {
+          path: data.path,
+          id: data.id,
+        })
 
         // Получаем публичный URL
         const {
           data: { publicUrl },
         } = supabase.storage.from('uploads').getPublicUrl(filePathInStorage)
 
-        console.log('Public URL:', publicUrl)
+        console.log('✅ Public URL generated:', publicUrl)
         filePath = publicUrl
       } else if (file.filename) {
         // Локальное хранилище (для разработки)
