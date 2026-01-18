@@ -30,6 +30,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
   const [selectedImages, setSelectedImages] = useState([])
   const [existingPhotos, setExistingPhotos] = useState([])
+  const [originalPhotos, setOriginalPhotos] = useState([]) // Сохраняем исходные фотографии для восстановления при отмене
   const [deletedPhotoIds, setDeletedPhotoIds] = useState([])
   const [uploading, setUploading] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -102,6 +103,7 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
         ? photosRes
         : photosRes?.data || []
       setExistingPhotos(photos)
+      setOriginalPhotos(photos) // Сохраняем исходные фотографии
       setDeletedPhotoIds([])
 
       const eventDate = post.event_date ? new Date(post.event_date) : new Date()
@@ -169,12 +171,15 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
   )
 
   const handleDismiss = useCallback(() => {
-    onClose?.()
+    // Восстанавливаем исходное состояние при закрытии без сохранения
+    // Фотографии не удаляются из базы данных, пока не нажата кнопка "Сохранить"
     setSelectedImages([])
     setDeletedPhotoIds([])
+    setExistingPhotos(originalPhotos) // Восстанавливаем исходные фотографии
     setShowDatePicker(false)
     setShowTimePicker(false)
-  }, [onClose])
+    onClose?.()
+  }, [onClose, originalPhotos])
 
   const renderBackdrop = useCallback(
     (props) => (
@@ -210,7 +215,7 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 0.8,
+      quality: 1.0, // Максимальное качество для сохранения исходного качества изображений
       selectionLimit: remainingSlots,
     })
 

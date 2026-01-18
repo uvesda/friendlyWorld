@@ -101,9 +101,11 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
   )
 
   const handleDismiss = useCallback(() => {
-    onClose?.()
+    // Восстанавливаем исходное состояние при закрытии без сохранения
+    // Аватар не удаляется из базы данных, пока не нажата кнопка "Сохранить"
     setSelectedAvatar(null)
     setAvatarToDelete(false)
+    onClose?.()
   }, [onClose])
 
   const renderBackdrop = useCallback(
@@ -133,7 +135,7 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: Platform.OS === 'ios',
       aspect: Platform.OS === 'ios' ? [1, 1] : undefined,
-      quality: 0.8,
+      quality: 1.0, // Максимальное качество для сохранения исходного качества изображений
       selectionLimit: 1,
     })
 

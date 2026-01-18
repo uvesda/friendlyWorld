@@ -9,6 +9,70 @@ const supabase = require('../config/supabase')
 const hasSupabaseConfig = process.env.SUPABASE_URL && 
   (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
 
+// Вспомогательная функция для удаления файла из Supabase Storage
+const deleteFileFromStorage = async (filePath) => {
+  if (!hasSupabaseConfig || !supabase || !filePath) {
+    return false
+  }
+
+  // Проверяем, является ли путь Supabase URL
+  if (!filePath.startsWith('http') && !filePath.startsWith('https')) {
+    return false
+  }
+
+  try {
+    // Извлекаем путь к файлу из Supabase URL
+    // Формат URL: https://xxxxx.supabase.co/storage/v1/object/public/uploads/posts/filename.jpg
+    const urlParts = filePath.split('/')
+    const storageIndex = urlParts.findIndex((part) => part === 'storage')
+    
+    if (storageIndex === -1) {
+      return false
+    }
+
+    // Находим путь после 'public/uploads/'
+    const publicIndex = urlParts.findIndex((part, idx) => idx > storageIndex && part === 'public')
+    
+    if (publicIndex === -1 || urlParts[publicIndex + 1] !== 'uploads') {
+      return false
+    }
+
+    const filePathInStorage = urlParts.slice(publicIndex + 2).join('/')
+    const { error } = await supabase.storage
+      .from('uploads')
+      .remove([filePathInStorage])
+    
+    if (error) {
+      console.error('Supabase delete error:', error)
+      return false
+    }
+    
+    return true
+  } catch (error) {
+    console.error('Error deleting from Supabase:', error)
+    return false
+  }
+}
+
+// Вспомогательная функция для удаления локального файла
+const deleteLocalFile = (filePath) => {
+  if (!filePath || filePath.startsWith('http')) {
+    return false
+  }
+  
+  try {
+    const fullPath = path.join(__dirname, '..', filePath)
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath)
+      return true
+    }
+  } catch (error) {
+    console.error('Error deleting local file:', error)
+  }
+  
+  return false
+}
+
 module.exports = {
   async upload(postId, userId, files) {
     if (!files || !files.length) {
@@ -120,37 +184,72 @@ module.exports = {
     }
 
     // Удалить файл из Supabase или с локального диска
-    if (hasSupabaseConfig && supabase && photo.path && (photo.path.startsWith('http') || photo.path.startsWith('https'))) {
-      // Supabase URL - извлекаем путь к файлу
-      // Формат URL: https://xxxxx.supabase.co/storage/v1/object/public/uploads/posts/filename.jpg
-      try {
-        const urlParts = photo.path.split('/')
-        const storageIndex = urlParts.findIndex((part) => part === 'storage')
-        if (storageIndex !== -1) {
-          // Находим путь после 'public/uploads/'
-          const publicIndex = urlParts.findIndex((part, idx) => idx > storageIndex && part === 'public')
-          if (publicIndex !== -1 && urlParts[publicIndex + 1] === 'uploads') {
-            const filePathInStorage = urlParts.slice(publicIndex + 2).join('/')
-            const { error } = await supabase.storage
-              .from('uploads')
-              .remove([filePathInStorage])
-            if (error) {
-              console.error('Supabase delete error:', error)
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error deleting from Supabase:', error)
+    if (photo.path) {
+      if (photo.path.startsWith('http') || photo.path.startsWith('https')) {
+        await deleteFileFromStorage(photo.path)
+      } else {
+        deleteLocalFile(photo.path)
       }
-    } else {
-      // Локальный путь - удаляем с диска
-      const filePath = path.join(__dirname, '..', photo.path)
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
     }
 
     // удалить запись из БД
     await PostPhotoModel.delete(photoId)
     return true
+  },
+
+  // Удалить все фотографии поста (используется при удалении поста)
+  async deleteAllPhotosByPost(postId) {
+    try {
+      const photos = await PostPhotoModel.getByPost(postId)
+      
+      if (!photos || photos.length === 0) {
+        return { deleted: 0, errors: 0 }
+      }
+
+      let deletedCount = 0
+      let errorCount = 0
+
+      // Удаляем файлы из хранилища
+      for (const photo of photos) {
+        if (photo.path) {
+          let deleted = false
+          
+          if (photo.path.startsWith('http') || photo.path.startsWith('https')) {
+            deleted = await deleteFileFromStorage(photo.path)
+          } else {
+            deleted = deleteLocalFile(photo.path)
+          }
+          
+          if (deleted) {
+            deletedCount++
+          } else {
+            errorCount++
+          }
+        }
+      }
+
+      // Удаляем записи из БД
+      // Используем транзакцию для удаления всех фотографий поста
+      for (const photo of photos) {
+        try {
+          await PostPhotoModel.delete(photo.id)
+        } catch (error) {
+          console.error(`Error deleting photo ${photo.id} from DB:`, error)
+          errorCount++
+        }
+      }
+
+      console.log(`Deleted ${deletedCount} files and ${photos.length} DB records for post ${postId}`)
+      
+      return {
+        deleted: deletedCount,
+        dbRecords: photos.length,
+        errors: errorCount,
+      }
+    } catch (error) {
+      console.error('Error deleting all photos by post:', error)
+      throw error
+    }
   },
 
   async updatePhoto(postId, userId, photoId, file) {
@@ -176,20 +275,8 @@ module.exports = {
 
     if (hasSupabaseConfig && supabase && file.buffer) {
       // Удалить старый файл из Supabase
-      if (photo.path && (photo.path.startsWith('http') || photo.path.startsWith('https'))) {
-        try {
-          const urlParts = photo.path.split('/')
-          const storageIndex = urlParts.findIndex((part) => part === 'storage')
-          if (storageIndex !== -1) {
-            const publicIndex = urlParts.findIndex((part, idx) => idx > storageIndex && part === 'public')
-            if (publicIndex !== -1 && urlParts[publicIndex + 1] === 'uploads') {
-              const filePathInStorage = urlParts.slice(publicIndex + 2).join('/')
-              await supabase.storage.from('uploads').remove([filePathInStorage])
-            }
-          }
-        } catch (error) {
-          console.error('Error deleting old file from Supabase:', error)
-        }
+      if (photo.path) {
+        await deleteFileFromStorage(photo.path)
       }
 
       // Загрузить новый файл в Supabase
@@ -222,8 +309,7 @@ module.exports = {
       }
 
       // Удалить старый файл
-      const oldPath = path.join(__dirname, '..', photo.path)
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
+      deleteLocalFile(photo.path)
 
       // Сохранить новый путь
       newPath = `/uploads/posts/${file.filename}`

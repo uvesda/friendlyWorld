@@ -70,7 +70,7 @@ const CreatePostScreen = ({ navigation }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 0.8,
+      quality: 1.0, // Максимальное качество для сохранения исходного качества изображений
       selectionLimit: 5,
     })
 
@@ -142,15 +142,6 @@ const CreatePostScreen = ({ navigation }) => {
       if (selectedImages.length > 0) {
         const formData = new FormData()
         
-        console.log('📋 Preparing FormData:', {
-          imagesCount: selectedImages.length,
-          images: selectedImages.map(img => ({
-            uri: img.uri?.substring(0, 50) + '...',
-            name: img.name,
-            type: img.type,
-          })),
-        })
-        
         selectedImages.forEach((image, index) => {
           // В React Native нужно использовать правильный формат для FormData
           const fileExtension = image.uri?.split('.').pop()?.toLowerCase() || 'jpg'
@@ -169,13 +160,6 @@ const CreatePostScreen = ({ navigation }) => {
             fileUri = fileUri.replace('file://', '')
           }
 
-          console.log(`📎 Adding file ${index + 1}:`, {
-            fileName,
-            fileType,
-            uri: fileUri?.substring(0, 50) + '...',
-            platform: Platform.OS,
-          })
-
           // Формат для React Native FormData
           formData.append('photos', {
             uri: fileUri,
@@ -184,32 +168,15 @@ const CreatePostScreen = ({ navigation }) => {
           })
         })
 
-        console.log('📤 Uploading photos:', {
-          postId: createdPostId,
-          imagesCount: selectedImages.length,
-          baseURL: process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000',
-          uploadURL: `${process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000'}/posts/${createdPostId}/photos`,
-        })
-
         try {
-          console.log('📤 Sending request to upload photos...')
-          const uploadResponse = await postApi.uploadPhotos(createdPostId, formData)
-          console.log('✅ Photos uploaded successfully:', uploadResponse)
+          await postApi.uploadPhotos(createdPostId, formData)
         } catch (uploadError) {
-          console.error('❌ Photo upload error:', uploadError)
-          console.error('Error message:', uploadError?.message)
-          console.error('Error code:', uploadError?.code)
-          console.error('Error name:', uploadError?.name)
-          console.error('Error response:', uploadError?.response?.data)
-          console.error('Error status:', uploadError?.response?.status)
-          
           // Если загрузка фото не удалась, удаляем созданный пост
           if (createdPostId) {
             try {
               await postApi.delete(createdPostId)
-              console.log('✅ Post deleted after photo upload failure')
-            } catch (deleteError) {
-              console.error('❌ Error deleting post after photo upload failure:', deleteError)
+            } catch {
+              // Игнорируем ошибку удаления поста
             }
           }
           throw uploadError
@@ -225,7 +192,6 @@ const CreatePostScreen = ({ navigation }) => {
         },
       ])
     } catch (e) {
-      console.error('Error creating post:', e)
       const errorMessage = getServerErrorMessage(e)
       Alert.alert('Ошибка', errorMessage || 'Произошла ошибка при создании поста')
     } finally {
