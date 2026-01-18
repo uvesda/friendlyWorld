@@ -8,10 +8,12 @@ const jwtConfig = require('./config/jwt')
 const server = http.createServer(app)
 
 // Создаём Socket.IO сервер
+// Для мобильного приложения можно оставить '*' в origin
 const io = new Server(server, {
   cors: {
-    origin: '*', // на проде сюда вставляем фронт
+    origin: process.env.FRONTEND_URL || '*', // для мобильного приложения можно оставить '*'
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 })
 
