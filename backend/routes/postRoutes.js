@@ -9,5 +9,6 @@ router.get('/:id', PostController.getById)
 router.post('/', auth, PostController.create)
 router.get('/me/my-posts', auth, PostController.getMyPosts)
 router.delete('/:id', auth, PostController.delete)
+router.put('/:id', auth, PostController.update)
 
 module.exports = router

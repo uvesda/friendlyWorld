@@ -1,7 +1,6 @@
 const express = require('express')
 const cors = require('cors')
 const logger = require('./middlewares/logger')
-const errorHandler = require('./middlewares/errorHandler')
 const initTables = require('./config/tables')
 
 // Роуты
@@ -11,6 +10,8 @@ const postPhotoRoutes = require('./routes/postPhotoRoutes')
 const favoriteRoutes = require('./routes/favoriteRoutes')
 const commentRoutes = require('./routes/commentRoutes')
 const chatRoutes = require('./routes/chatRoutes')
+const userRoutes = require('./routes/userRoutes')
+const errorMiddleware = require('./middlewares/errorMiddleware')
 
 const app = express()
 
@@ -30,12 +31,13 @@ app.use('/uploads', express.static('uploads'))
 app.use('/', favoriteRoutes)
 app.use('/', commentRoutes)
 app.use('/', chatRoutes)
+app.use('/', userRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend' })
 })
 
 // Обработчик ошибок
-app.use(errorHandler)
+app.use(errorMiddleware)
 
 module.exports = app

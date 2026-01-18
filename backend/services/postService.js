@@ -1,4 +1,7 @@
 const PostModel = require('../models/postModel')
+const PostPhotoModel = require('../models/postPhotoModel')
+const AppError = require('../utils/AppError')
+const ERRORS = require('../utils/errors')
 
 module.exports = {
   async create(userId, data) {
@@ -9,25 +12,59 @@ module.exports = {
   },
 
   async getAll(filters) {
-    return await PostModel.getAll(filters)
+    const posts = await PostModel.getAll(filters)
+    // Загружаем фотографии для каждого поста
+    const postsWithPhotos = await Promise.all(
+      posts.map(async (post) => {
+        const photos = await PostPhotoModel.getByPost(post.id)
+        return {
+          ...post,
+          photos: photos || [],
+        }
+      })
+    )
+    return postsWithPhotos
   },
 
   async getById(id) {
     const post = await PostModel.getById(id)
     if (!post) {
-      throw new Error('Post not found')
+      throw new AppError(ERRORS.POST_NOT_FOUND, 404)
     }
-    return post
+    const photos = await PostPhotoModel.getByPost(post.id)
+    return {
+      ...post,
+      photos: photos || [],
+    }
   },
 
   async getMyPosts(userId) {
-    return await PostModel.getByAuthor(userId)
+    const posts = await PostModel.getByAuthor(userId)
+    // Загружаем фотографии для каждого поста
+    const postsWithPhotos = await Promise.all(
+      posts.map(async (post) => {
+        const photos = await PostPhotoModel.getByPost(post.id)
+        return {
+          ...post,
+          photos: photos || [],
+        }
+      })
+    )
+    return postsWithPhotos
   },
 
   async delete(postId, userId) {
     const result = await PostModel.delete(postId, userId)
     if (result.changes === 0) {
-      throw new Error('No permission or post not found')
+      throw new AppError(ERRORS.NO_PERMISSION, 403)
+    }
+    return true
+  },
+
+  async update(postId, userId, data) {
+    const result = await PostModel.update(postId, userId, data)
+    if (result.changes === 0) {
+      throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
     return true
   },

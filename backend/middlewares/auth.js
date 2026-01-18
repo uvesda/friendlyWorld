@@ -1,21 +1,22 @@
 const jwt = require('jsonwebtoken')
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key'
+const jwtConfig = require('../config/jwt')
+const AppError = require('../utils/AppError')
+const ERRORS = require('../utils/errors')
 
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization
 
   if (!authHeader) {
-    return res.status(401).json({ message: 'No token provided' })
+    return next(new AppError(ERRORS.UNAUTHORIZED, 401))
   }
 
-  const token = authHeader.split(' ')[1]
+  const [, token] = authHeader.split(' ')
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET)
+    const decoded = jwt.verify(token, jwtConfig.access.secret)
     req.user = decoded
     next()
-  } catch (e) {
-    return res.status(401).json({ message: 'Invalid token' })
+  } catch {
+    next(new AppError(ERRORS.INVALID_TOKEN, 401))
   }
 }

@@ -1,8 +1,6 @@
-import React, { useState, useContext, useEffect } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
@@ -15,12 +13,27 @@ import { Asset } from 'expo-asset'
 import { AuthContext } from '@app/contexts/AuthContext'
 import { backgrounds, colors } from '@assets/index'
 import { Loader } from '@components/Loader/Loader'
+import { TextInputField } from '@components/TextInputField/TextInputField'
+import { ButtonPrimary } from '@components/ButtonPrimary/ButtonPrimary'
+import { AppText } from '@components/AppText/AppText'
+import { useForm, Controller } from 'react-hook-form'
+import { getServerErrorMessage } from '@utils/getServerErrorMessage'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-const LoginScreen = () => {
+const LoginScreen = ({ navigation }) => {
   const [ready, setReady] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const { setAuthState } = useContext(AuthContext)
+  const { login } = useContext(AuthContext)
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  })
 
   useEffect(() => {
     Asset.fromModule(backgrounds.hourglass)
@@ -34,12 +47,11 @@ const LoginScreen = () => {
     return <Loader />
   }
 
-  const handleLogin = () => {
-    // Временная логика для демонстрации позже заменить на запрос из API
-    if (email && password) {
-      setAuthState({ isLoggedIn: true, loading: false })
-    } else {
-      Alert.alert('Ошибка', 'Пожалуйста, заполните все поля')
+  const onSubmit = async (data) => {
+    try {
+      await login(data.email, data.password)
+    } catch (e) {
+      Alert.alert('Ошибка', getServerErrorMessage(e))
     }
   }
 
@@ -51,14 +63,11 @@ const LoginScreen = () => {
   }
 
   const handleCreateAccount = () => {
-    Alert.alert(
-      'Создание аккаунта',
-      'Функция создания аккаунта будет добавлена позже'
-    )
+    navigation.navigate('Register')
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Image
         source={backgrounds.hourglass}
         style={StyleSheet.absoluteFill}
@@ -71,54 +80,92 @@ const LoginScreen = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.content}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
+            <Controller
+              control={control}
+              name="email"
+              rules={{
+                required: 'Email обязателен',
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: 'Неверный формат email',
+                },
+              }}
+              render={({ field: { value, onChange } }) => (
+                <TextInputField
+                  placeholder="Email"
+                  placeholderTextColor={colors.gray}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                />
+              )}
             />
+            {errors.email && (
+              <AppText style={styles.errorText}>{errors.email.message}</AppText>
+            )}
 
-            <TextInput
-              style={styles.input}
-              placeholder="Пароль"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
+            <Controller
+              control={control}
+              name="password"
+              rules={{
+                required: 'Пароль обязателен',
+                minLength: {
+                  value: 6,
+                  message: 'Пароль должен быть не меньше 6 символов',
+                },
+              }}
+              render={({ field: { value, onChange } }) => (
+                <TextInputField
+                  placeholder="Пароль"
+                  placeholderTextColor={colors.gray}
+                  value={value}
+                  onChangeText={onChange}
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+              )}
             />
+            {errors.password && (
+              <AppText style={styles.errorText}>
+                {errors.password.message}
+              </AppText>
+            )}
 
             <View style={styles.forgotPasswordContainer}>
-              <Text style={styles.forgotPasswordText}>Забыли пароль? </Text>
+              <AppText style={styles.forgotPasswordText}>
+                Забыли пароль?{' '}
+              </AppText>
               <TouchableOpacity onPress={handleForgotPassword}>
-                <Text style={styles.forgotPasswordLink}>Нажмите сюда</Text>
+                <AppText style={styles.forgotPasswordLink}>
+                  Нажмите сюда
+                </AppText>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Войти</Text>
-            </TouchableOpacity>
+            <ButtonPrimary
+              title="Войти"
+              onPress={handleSubmit(onSubmit)}
+              loading={isSubmitting}
+              disabled={isSubmitting}
+            />
 
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>или</Text>
+              <AppText style={styles.dividerText}>или</AppText>
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity
-              style={styles.createAccountButton}
+            <ButtonPrimary
+              title="Создать аккаунт"
               onPress={handleCreateAccount}
-            >
-              <Text style={styles.createAccountText}>Создать аккаунт</Text>
-            </TouchableOpacity>
+              style={{ backgroundColor: colors.green }}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   )
 }
 
@@ -134,51 +181,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#FFCA92',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    color: '#333',
-  },
   forgotPasswordContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 24,
-    fontFamily: 'Inter-Regular',
   },
   forgotPasswordText: {
-    color: '#000000',
+    color: colors.fullBlack,
     fontSize: 14,
   },
   forgotPasswordLink: {
     color: colors.green,
     fontSize: 14,
     fontWeight: '600',
-  },
-  loginButton: {
-    backgroundColor: colors.green,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Unbounded-Regular',
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -188,26 +203,17 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: colors.white,
   },
   dividerText: {
     paddingHorizontal: 16,
-    color: '#000000',
+    color: colors.fullBlack,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
   },
-  createAccountButton: {
-    borderWidth: 0,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    backgroundColor: colors.green,
-  },
-  createAccountText: {
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: 'Unbounded-Regular',
+  errorText: {
+    color: 'red',
+    fontSize: 12,
+    marginBottom: 8,
   },
 })
 

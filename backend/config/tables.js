@@ -6,9 +6,10 @@ function initTables() {
     db.run(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        name TEXT,
+        avatar TEXT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
@@ -31,6 +32,7 @@ function initTables() {
         author_id INTEGER NOT NULL,
 
         status TEXT CHECK(status IN ('lost', 'found')) NOT NULL,
+        description TEXT DEFAULT NULL,
 
         event_date DATETIME NOT NULL,
 
@@ -77,6 +79,7 @@ function initTables() {
         author_id INTEGER NOT NULL,
         text TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT NULL,
         
         FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
         FOREIGN KEY (author_id) REFERENCES users(id)
@@ -96,6 +99,17 @@ function initTables() {
         FOREIGN KEY (user2_id) REFERENCES users(id)
       )
     `)
+    // CHAT_USERS
+    db.run(`
+      CREATE TABLE IF NOT EXISTS chat_users (
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        deleted INTEGER DEFAULT 0,
+        PRIMARY KEY(chat_id, user_id),
+        FOREIGN KEY(chat_id) REFERENCES chats(id),
+        FOREIGN KEY(user_id) REFERENCES users(id)
+      );
+    `)
     // MESSAGES
     db.run(`
       CREATE TABLE IF NOT EXISTS messages (
@@ -104,8 +118,9 @@ function initTables() {
         sender_id INTEGER NOT NULL,
         text TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (chat_id) REFERENCES chats(id),
-        FOREIGN KEY (sender_id) REFERENCES users(id)
+        updated_at DATETIME DEFAULT NULL,
+        FOREIGN KEY(chat_id) REFERENCES chats(id),
+        FOREIGN KEY(sender_id) REFERENCES users(id)
       )
     `)
   })

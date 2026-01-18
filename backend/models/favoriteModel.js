@@ -31,10 +31,13 @@ module.exports = {
     return new Promise((resolve, reject) => {
       db.all(
         `
-        SELECT p.*
+        SELECT p.*, u.name as author_name, COUNT(c.id) as comments_count
         FROM posts p
         JOIN favorites f ON f.post_id = p.id
+        JOIN users u ON u.id = p.author_id
+        LEFT JOIN comments c ON c.post_id = p.id
         WHERE f.user_id = ?
+        GROUP BY p.id
         ORDER BY f.created_at DESC
         `,
         [user_id],
