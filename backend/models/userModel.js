@@ -85,4 +85,52 @@ module.exports = {
       )
     })
   },
+
+  deleteAvatar(id) {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE users SET avatar=NULL WHERE id=?`,
+        [id],
+        function (err) {
+          if (err) reject(err)
+          else resolve({ changes: this.changes })
+        }
+      )
+    })
+  },
+
+  async verifyPassword(userId, password) {
+    return new Promise((resolve, reject) => {
+      db.get(
+        `SELECT password FROM users WHERE id = ?`,
+        [userId],
+        async (err, row) => {
+          if (err) reject(err)
+          else if (!row) resolve(false)
+          else {
+            const isValid = await bcrypt.compare(password, row.password)
+            resolve(isValid)
+          }
+        }
+      )
+    })
+  },
+
+  changePassword(id, newPassword) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const hash = await bcrypt.hash(newPassword, 10)
+        db.run(
+          `UPDATE users SET password=? WHERE id=?`,
+          [hash, id],
+          function (err) {
+            if (err) reject(err)
+            else resolve({ changes: this.changes })
+          }
+        )
+      } catch (e) {
+        reject(e)
+      }
+    })
+  },
 }

@@ -5,6 +5,7 @@ import { tokenStorage } from '@utils/tokenStorage'
 export const AuthContext = createContext({
   isLoggedIn: false,
   loading: true,
+  user: null,
   login: async () => {},
   register: async () => {},
   logout: async () => {},
@@ -19,29 +20,32 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const init = async () => {
       try {
-        const accessToken = await tokenStorage.getAccessToken()
-        if (accessToken) {
-          const { user } = await auth.me()
-          setState({ isLoggedIn: true, loading: false, user })
-        } else {
-          const refreshToken = await tokenStorage.getRefreshToken()
-          if (refreshToken) {
-            try {
-              await auth.refresh(refreshToken)
-              const user = await auth.me()
+        const refreshToken = await tokenStorage.getRefreshToken()
+        if (refreshToken) {
+          try {
+            const meResponse = await auth.me()
+
+            const profileData = meResponse?.data || meResponse
+
+            const user = profileData?.user
+
+            if (user?.id) {
               setState({ isLoggedIn: true, loading: false, user })
-            } catch {
-              await tokenStorage.clear()
+            } else {
               setState({ isLoggedIn: false, loading: false })
             }
-          } else {
+          } catch (meError) {
+            console.error('Failed to get user data:', meError)
+            await tokenStorage.clear()
             setState({ isLoggedIn: false, loading: false })
           }
+        } else {
+          setState({ isLoggedIn: false, loading: false })
         }
       } catch (e) {
-        console.error(e)
+        console.error('Auth init error:', e)
+        await tokenStorage.clear()
         setState({ isLoggedIn: false, loading: false })
-        throw e
       }
     }
     init()
@@ -49,8 +53,17 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      await auth.login(email, password)
-      setState((prev) => ({ ...prev, isLoggedIn: true }))
+      const user = await auth.login(email, password)
+      try {
+        const meResponse = await auth.me()
+
+        const profileData = meResponse?.data || meResponse
+
+        const fullUser = profileData?.user || user
+        setState({ isLoggedIn: true, loading: false, user: fullUser })
+      } catch {
+        setState({ isLoggedIn: true, loading: false, user })
+      }
     } catch (e) {
       console.error(e)
       throw e
@@ -59,8 +72,17 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      await auth.register(name, email, password)
-      setState((prev) => ({ ...prev, isLoggedIn: true }))
+      const user = await auth.register(name, email, password)
+      try {
+        const meResponse = await auth.me()
+
+        const profileData = meResponse?.data || meResponse
+
+        const fullUser = profileData?.user || user
+        setState({ isLoggedIn: true, loading: false, user: fullUser })
+      } catch {
+        setState({ isLoggedIn: true, loading: false, user })
+      }
     } catch (e) {
       console.error(e)
       throw e
@@ -83,6 +105,7 @@ export const AuthProvider = ({ children }) => {
       value={{
         isLoggedIn: state.isLoggedIn,
         loading: state.loading,
+        user: state.user,
         login,
         register,
         logout,

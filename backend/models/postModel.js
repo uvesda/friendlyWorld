@@ -23,6 +23,9 @@ module.exports = {
     if (longitude && isNaN(Number(longitude)))
       throw new Error('Invalid longitude')
 
+    // Преобразуем хештег в lowercase
+    const normalizedHashtag = hashtag.trim().toLowerCase()
+
     return new Promise((resolve, reject) => {
       db.run(
         `
@@ -38,7 +41,7 @@ module.exports = {
           address,
           latitude,
           longitude,
-          hashtag,
+          normalizedHashtag,
         ],
         function (err) {
           if (err) reject(err)
@@ -62,8 +65,8 @@ module.exports = {
     }
 
     if (filters.hashtag) {
-      conditions.push(`p.hashtag LIKE ?`)
-      params.push(`%${filters.hashtag}%`)
+      conditions.push(`LOWER(p.hashtag) LIKE ?`)
+      params.push(`%${filters.hashtag.toLowerCase()}%`)
     }
 
     if (conditions.length) query += ` WHERE ` + conditions.join(' AND ')
@@ -136,6 +139,11 @@ module.exports = {
       fields.push('status=?')
       params.push(data.status)
     }
+    if (data.description !== undefined) {
+      // description может быть null или пустым
+      fields.push('description=?')
+      params.push(data.description || null)
+    }
     if (data.event_date !== undefined) {
       if (!data.event_date?.trim())
         throw new Error('Event date cannot be empty')
@@ -150,22 +158,21 @@ module.exports = {
     if (data.hashtag !== undefined) {
       if (!data.hashtag?.trim()) throw new Error('Hashtag cannot be empty')
       fields.push('hashtag=?')
-      params.push(data.hashtag)
+      params.push(data.hashtag.trim().toLowerCase())
     }
     if (data.latitude !== undefined) {
       if (isNaN(Number(data.latitude))) throw new Error('Invalid latitude')
       fields.push('latitude=?')
-      params.push(data.latitude)
+      params.push(Number(data.latitude))
     }
     if (data.longitude !== undefined) {
       if (isNaN(Number(data.longitude))) throw new Error('Invalid longitude')
       fields.push('longitude=?')
-      params.push(data.longitude)
+      params.push(Number(data.longitude))
     }
 
     if (fields.length === 0) return Promise.resolve({ changes: 0 })
 
-    fields.push('updated_at=CURRENT_TIMESTAMP')
     params.push(id, author_id)
 
     return new Promise((resolve, reject) => {

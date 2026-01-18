@@ -6,6 +6,8 @@ import ProfileScreen from '@screens/ProfileScreen/ProfileScreen'
 import { colors } from '@assets'
 import PostsScreen from '@screens/PostsScreen/PostsScreen'
 import CreatePostScreen from '@screens/CreatePostScreen/CreatePostScreen'
+import SavedPostsScreen from '@screens/SavedPostsScreen/SavedPostsScreen'
+import MyPostsScreen from '@screens/MyPostsScreen/MyPostsScreen'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const Tab = createBottomTabNavigator()
@@ -56,7 +58,6 @@ export default function AppNavigator() {
 
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <Image
@@ -68,7 +69,23 @@ export default function AppNavigator() {
             />
           ),
         }}
-      />
+      >
+        {() => (
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+            <Stack.Screen
+              name="SavedPosts"
+              component={SavedPostsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="MyPosts"
+              component={MyPostsScreen}
+              options={{ headerShown: false }}
+            />
+          </Stack.Navigator>
+        )}
+      </Tab.Screen>
     </Tab.Navigator>
   )
 }

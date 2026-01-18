@@ -24,4 +24,20 @@ module.exports = {
   async updateAvatar(userId, path) {
     return await UserModel.updateAvatar(userId, path)
   },
+
+  async deleteAvatar(userId) {
+    return await UserModel.deleteAvatar(userId)
+  },
+
+  async changePassword(userId, oldPassword, newPassword) {
+    // Проверяем старый пароль
+    const isValid = await UserModel.verifyPassword(userId, oldPassword)
+    if (!isValid) {
+      const error = new Error('INVALID_PASSWORD')
+      error.status = 400
+      throw error
+    }
+    // Меняем пароль
+    return await UserModel.changePassword(userId, newPassword)
+  },
 }

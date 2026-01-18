@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  useContext,
+} from 'react'
 import {
   View,
   StyleSheet,
@@ -18,6 +25,8 @@ import { AppText } from '@components/AppText/AppText'
 import { postApi } from '@entities/postApi/postApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
 import ImageViewer from '@components/ImageViewer/ImageViewer'
+import CommentActionBottomSheet from '@components/CommentActionBottomSheet/CommentActionBottomSheet'
+import { AuthContext } from '@app/contexts/AuthContext'
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
 
@@ -36,10 +45,15 @@ const PostBottomSheet = ({
   const [sendingComment, setSendingComment] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(null)
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false)
-  const [sheetIndex, setSheetIndex] = useState(-1)
+  const [selectedComment, setSelectedComment] = useState(null)
+  const [isCommentActionSheetVisible, setIsCommentActionSheetVisible] =
+    useState(false)
   const bottomSheetRef = useRef(null)
   const scrollViewRef = useRef(null)
   const commentsRef = useRef(null)
+
+  const { user: currentUser } = useContext(AuthContext)
+  const currentUserId = currentUser?.id || null
 
   const snapPoints = useMemo(() => [SCREEN_HEIGHT * 0.9], [])
 
@@ -53,8 +67,15 @@ const PostBottomSheet = ({
         postApi.getComments(post.id),
       ])
 
-      setPhotos(photosRes.data || [])
-      setComments(commentsRes.data || [])
+      const photos = Array.isArray(photosRes)
+        ? photosRes
+        : photosRes?.data || []
+      const comments = Array.isArray(commentsRes)
+        ? commentsRes
+        : commentsRes?.data || []
+
+      setPhotos(photos)
+      setComments(comments)
     } catch (e) {
       console.error('Ошибка загрузки данных поста', e)
     } finally {
@@ -111,7 +132,6 @@ const PostBottomSheet = ({
 
   const handleSheetChanges = useCallback(
     (index) => {
-      setSheetIndex(index)
       if (index === -1) {
         onClose?.()
       }
@@ -201,6 +221,61 @@ const PostBottomSheet = ({
     }
   }
 
+  const handleCommentPress = (comment) => {
+    if (!comment?.author_id) {
+      return
+    }
+
+    const isMy = isMyComment(comment)
+    if (isMy) {
+      setSelectedComment(comment)
+      setIsCommentActionSheetVisible(true)
+    }
+  }
+
+  const handleCommentActionSheetClose = () => {
+    setIsCommentActionSheetVisible(false)
+    setSelectedComment(null)
+  }
+
+  const handleCommentUpdated = () => {
+    loadPostData()
+  }
+
+  const isMyComment = (comment) => {
+    if (!currentUserId) {
+      return false
+    }
+
+    if (!comment?.author_id) {
+      return false
+    }
+
+    const commentAuthorId = Number(comment.author_id)
+    const userId = Number(currentUserId)
+
+    if (isNaN(commentAuthorId) || isNaN(userId)) {
+      return false
+    }
+
+    const isMy = commentAuthorId === userId
+    return isMy
+  }
+
+  const isMyPost = () => {
+    if (!currentUserId || !post?.author_id) {
+      return false
+    }
+    const postAuthorId = Number(post.author_id)
+    const userId = Number(currentUserId)
+    if (isNaN(postAuthorId) || isNaN(userId)) {
+      return false
+    }
+    return postAuthorId === userId
+  }
+
+  const isMy = isMyPost()
+
   if (!post) return null
 
   const imageUrls = photos
@@ -260,7 +335,9 @@ const PostBottomSheet = ({
                   source={require('@assets/avatar.png')}
                   style={styles.avatar}
                 />
-                <AppText style={styles.authorName}>{post.author_name}</AppText>
+                <AppText style={styles.authorName}>
+                  {isMy ? 'Я' : post.author_name}
+                </AppText>
               </View>
               <AppText style={styles.date}>
                 {formatDate(post.event_date)}
@@ -275,23 +352,47 @@ const PostBottomSheet = ({
               <AppText style={styles.description}>{post.description}</AppText>
             )}
 
-            {/* Хештег */}
-            {post.hashtag && (
-              <View style={styles.hashtagContainer}>
-                <View style={styles.hashtagBorder}>
-                  <AppText style={styles.hashtagText}>#{post.hashtag}</AppText>
+            {/* Хештеги */}
+            <View style={styles.hashtagsContainer}>
+              {/* Хештег статуса */}
+              {post.status && (
+                <View style={styles.hashtagContainer}>
+                  <View
+                    style={[
+                      styles.hashtagBorder,
+                      post.status === 'lost' && styles.hashtagBorderOrange,
+                      post.status === 'found' && styles.hashtagBorderGreen,
+                    ]}
+                  >
+                    <AppText style={styles.hashtagText}>
+                      {post.status === 'lost' ? '#потерян' : '#найден'}
+                    </AppText>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
+
+              {/* Хештег поста */}
+              {post.hashtag && (
+                <View style={styles.hashtagContainer}>
+                  <View style={styles.hashtagBorderYellow}>
+                    <AppText style={styles.hashtagText}>
+                      #{post.hashtag}
+                    </AppText>
+                  </View>
+                </View>
+              )}
+            </View>
 
             {/* Действия */}
             <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.contactButton}
-                onPress={onContactPress}
-              >
-                <AppText style={styles.contactButtonText}>Связаться</AppText>
-              </TouchableOpacity>
+              {!isMy && (
+                <TouchableOpacity
+                  style={styles.contactButton}
+                  onPress={onContactPress}
+                >
+                  <AppText style={styles.contactButtonText}>Связаться</AppText>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={styles.favoriteButton}
@@ -315,17 +416,26 @@ const PostBottomSheet = ({
               </AppText>
 
               {/* Список комментариев */}
-              {comments.map((comment) => (
-                <View key={comment.id} style={styles.comment}>
-                  <AppText style={styles.commentAuthor}>
-                    {comment.author_name}
-                  </AppText>
-                  <AppText style={styles.commentText}>{comment.text}</AppText>
-                  <AppText style={styles.commentDate}>
-                    {formatDate(comment.created_at)}
-                  </AppText>
-                </View>
-              ))}
+              {comments.map((comment) => {
+                const isMy = isMyComment(comment)
+                return (
+                  <TouchableOpacity
+                    key={comment.id}
+                    style={styles.comment}
+                    onPress={() => handleCommentPress(comment)}
+                    activeOpacity={isMy ? 0.7 : 1}
+                    disabled={!isMy}
+                  >
+                    <AppText style={styles.commentAuthor}>
+                      {isMy ? 'Я' : comment.author_name}
+                    </AppText>
+                    <AppText style={styles.commentText}>{comment.text}</AppText>
+                    <AppText style={styles.commentDate}>
+                      {formatDate(comment.created_at)}
+                    </AppText>
+                  </TouchableOpacity>
+                )
+              })}
 
               {/* Форма добавления комментария */}
               <View style={styles.commentInputContainer}>
@@ -359,6 +469,13 @@ const PostBottomSheet = ({
         images={imageUrls}
         initialIndex={selectedImageIndex}
         onClose={() => setIsImageViewerVisible(false)}
+      />
+
+      <CommentActionBottomSheet
+        comment={selectedComment}
+        visible={isCommentActionSheetVisible}
+        onClose={handleCommentActionSheetClose}
+        onCommentUpdated={handleCommentUpdated}
       />
     </>
   )
@@ -414,8 +531,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Cruinn-Regular',
   },
   date: {
-    fontSize: 12,
-    color: colors.gray,
+    fontSize: 14,
+    color: colors.fullBlack,
     fontFamily: 'Cruinn-Regular',
   },
   address: {
@@ -424,12 +541,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontFamily: 'Cruinn-Bold',
   },
-  hashtagContainer: {
+  hashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 12,
+  },
+  hashtagContainer: {
+    marginBottom: 0,
   },
   hashtagBorder: {
     borderRadius: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  hashtagBorderOrange: {
+    backgroundColor: colors.lowOrange,
+  },
+  hashtagBorderGreen: {
     backgroundColor: colors.green,
+  },
+  hashtagBorderYellow: {
+    backgroundColor: colors.yellow,
+    borderRadius: 12,
     alignSelf: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 8,

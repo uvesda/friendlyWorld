@@ -1,5 +1,6 @@
 const FavoriteModel = require('../models/favoriteModel')
 const PostModel = require('../models/postModel')
+const PostPhotoModel = require('../models/postPhotoModel')
 const AppError = require('../utils/AppError')
 const ERRORS = require('../utils/errors')
 
@@ -26,6 +27,17 @@ module.exports = {
   },
 
   async getMyFavorites(userId) {
-    return await FavoriteModel.getUserFavorites(userId)
+    const posts = await FavoriteModel.getUserFavorites(userId)
+    // Загружаем фотографии для каждого поста
+    const postsWithPhotos = await Promise.all(
+      posts.map(async (post) => {
+        const photos = await PostPhotoModel.getByPost(post.id)
+        return {
+          ...post,
+          photos: photos || [],
+        }
+      })
+    )
+    return postsWithPhotos
   },
 }

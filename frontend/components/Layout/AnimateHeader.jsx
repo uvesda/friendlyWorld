@@ -7,18 +7,24 @@ import {
   StatusBar,
   useWindowDimensions,
 } from 'react-native'
+import { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@assets'
 import { AppText } from '@components/AppText/AppText'
+import { TextInputField } from '@components/TextInputField/TextInputField'
 
 const AnimateHeader = ({
   activeTab,
   onTabChange,
   position,
   onPostAddPress,
+  searchValue,
+  onSearchChange,
+  onFilterPress,
 }) => {
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
+  const [isSearchVisible, setIsSearchVisible] = useState(false)
 
   const HORIZONTAL_MARGIN = 60
   const TABS_COUNT = 2
@@ -30,6 +36,13 @@ const AnimateHeader = ({
     inputRange: [0, 1],
     outputRange: [0, indicatorWidth],
   })
+
+  const handleSearchPress = () => {
+    if (isSearchVisible) {
+      onSearchChange?.('')
+    }
+    setIsSearchVisible(!isSearchVisible)
+  }
 
   return (
     <>
@@ -96,13 +109,35 @@ const AnimateHeader = ({
           />
         </View>
 
+        {/* SEARCH ROW */}
+        {isSearchVisible && (
+          <View style={styles.searchRow}>
+            <TextInputField
+              placeholder="Поиск по хештегу..."
+              placeholderTextColor={colors.gray}
+              value={searchValue}
+              onChangeText={onSearchChange}
+              style={styles.searchInput}
+              autoFocus
+            />
+          </View>
+        )}
+
         {/* ACTION ROW */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionButton}>
+        <View
+          style={[
+            styles.actionRow,
+            isSearchVisible && { marginTop: 12, top: 0 },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleSearchPress}
+          >
             <Image source={require('@assets/search.png')} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={onFilterPress}>
             <Image source={require('@assets/filter.png')} />
           </TouchableOpacity>
 
@@ -155,6 +190,16 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: colors.green,
     borderRadius: 2,
+  },
+
+  searchRow: {
+    marginTop: 16,
+    paddingHorizontal: 60,
+  },
+
+  searchInput: {
+    marginBottom: 0,
+    borderColor: colors.green,
   },
 
   actionRow: {

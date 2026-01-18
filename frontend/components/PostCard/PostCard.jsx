@@ -1,9 +1,17 @@
-import React from 'react'
-import { View, StyleSheet, Image, TouchableOpacity } from 'react-native'
+import {
+  View,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  useWindowDimensions,
+} from 'react-native'
+import { useContext } from 'react'
 import { colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
+import { AuthContext } from '@app/contexts/AuthContext'
 
 const MAX_DESCRIPTION_LENGTH = 100
+const NARROW_SCREEN_WIDTH = 360
 
 const PostCard = ({
   post,
@@ -11,10 +19,29 @@ const PostCard = ({
   photo,
   isFavorite = false,
   onPress,
+  onLongPress,
   onContactPress,
   onCommentsPress,
   onBookmarkPress,
 }) => {
+  const { width: screenWidth } = useWindowDimensions()
+  const isNarrowScreen = screenWidth < NARROW_SCREEN_WIDTH
+  const { user: currentUser } = useContext(AuthContext)
+  const currentUserId = currentUser?.id || null
+
+  const isMyPost = () => {
+    if (!currentUserId || !post?.author_id) {
+      return false
+    }
+    const postAuthorId = Number(post.author_id)
+    const userId = Number(currentUserId)
+    if (isNaN(postAuthorId) || isNaN(userId)) {
+      return false
+    }
+    return postAuthorId === userId
+  }
+
+  const isMy = isMyPost()
   const formatDate = (dateString) => {
     if (!dateString) return ''
     const date = new Date(dateString)
@@ -45,10 +72,8 @@ const PostCard = ({
   const getPhotoUri = (photoPath) => {
     if (!photoPath) return null
     const baseURL = process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000'
-    if (typeof photoPath === 'string' && photoPath.startsWith('http'))
-      return photoPath
-    if (typeof photoPath === 'string') return `${baseURL}${photoPath}`
-    return photoPath
+    if (photoPath.startsWith('http')) return photoPath
+    return `${baseURL}${photoPath}`
   }
 
   const truncateDescription = (text) => {
@@ -57,12 +82,23 @@ const PostCard = ({
     return text.substring(0, MAX_DESCRIPTION_LENGTH) + '...'
   }
 
-  const photoUri = photo
-    ? getPhotoUri(typeof photo === 'object' ? photo.path : photo)
+  const firstPhoto = post?.photos?.[0] || photo
+  const photoPath = firstPhoto
+    ? typeof firstPhoto === 'object' && firstPhoto.path
+      ? firstPhoto.path
+      : typeof firstPhoto === 'string'
+      ? firstPhoto
+      : null
     : null
+  const photoUri = photoPath ? getPhotoUri(photoPath) : null
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.9}
+      onPress={onPress}
+      onLongPress={onLongPress}
+    >
       {/* Изображение поста */}
       {photoUri && (
         <Image
@@ -92,7 +128,9 @@ const PostCard = ({
                 style={styles.avatar}
               />
             )}
-            <AppText style={styles.authorName}>{post?.author_name}</AppText>
+            <AppText style={styles.authorName}>
+              {isMy ? 'Я' : post?.author_name}
+            </AppText>
           </View>
           <AppText style={styles.date}>{formatDate(post?.event_date)}</AppText>
         </View>
@@ -109,17 +147,59 @@ const PostCard = ({
             </AppText>
           )}
 
+          {/* Хештеги */}
+          <View style={styles.hashtagsContainer}>
+            {/* Хештег статуса */}
+            {post?.status && (
+              <View style={styles.hashtagContainer}>
+                <View
+                  style={[
+                    styles.hashtagBorder,
+                    post.status === 'lost' && styles.hashtagBorderOrange,
+                    post.status === 'found' && styles.hashtagBorderGreen,
+                  ]}
+                >
+                  <AppText style={styles.hashtagText}>
+                    {post.status === 'lost' ? '#потерян' : '#найден'}
+                  </AppText>
+                </View>
+              </View>
+            )}
+
+            {/* Хештег поста */}
+            {post?.hashtag && (
+              <View style={styles.hashtagContainer}>
+                <View style={styles.hashtagBorderYellow}>
+                  <AppText style={styles.hashtagText}>#{post.hashtag}</AppText>
+                </View>
+              </View>
+            )}
+          </View>
+
           {/* Действия */}
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.contactButton}
-              onPress={(e) => {
-                e.stopPropagation()
-                onContactPress?.()
-              }}
-            >
-              <AppText style={styles.contactButtonText}>Связаться</AppText>
-            </TouchableOpacity>
+            {!isMy && (
+              <TouchableOpacity
+                style={[
+                  styles.contactButton,
+                  isNarrowScreen && styles.contactButtonNarrow,
+                ]}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  onContactPress?.()
+                }}
+              >
+                <AppText
+                  style={[
+                    styles.contactButtonText,
+                    isNarrowScreen && styles.contactButtonTextNarrow,
+                  ]}
+                  numberOfLines={1}
+                >
+                  Связаться
+                </AppText>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.commentsLink}
@@ -221,6 +301,39 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Cruinn-Regular',
   },
+  hashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  hashtagContainer: {
+    marginBottom: 0,
+  },
+  hashtagBorder: {
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  hashtagBorderOrange: {
+    backgroundColor: colors.lowOrange,
+  },
+  hashtagBorderGreen: {
+    backgroundColor: colors.green,
+  },
+  hashtagBorderYellow: {
+    backgroundColor: colors.yellow,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  hashtagText: {
+    fontSize: 12,
+    color: colors.fullBlack,
+    fontFamily: 'Cruinn-Regular',
+  },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,11 +347,21 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
+  contactButtonHidden: {
+    display: 'none',
+  },
+  contactButtonNarrow: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
   contactButtonText: {
     color: colors.white,
     fontSize: 12,
     textAlign: 'center',
     fontFamily: 'Unbounded-Regular',
+  },
+  contactButtonTextNarrow: {
+    fontSize: 10,
   },
   commentsLink: {
     marginRight: 12,

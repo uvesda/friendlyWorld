@@ -7,11 +7,12 @@ import { Audio } from 'expo-av'
 import { userApi } from '@entities/userApi/userApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
 import { AuthContext } from '@app/contexts/AuthContext'
+import EditUserBottomSheet from '@components/EditUserBottomSheet/EditUserBottomSheet'
 
-const ProfileScreen = () => {
-  const [userNameHeight, setUserNameHeight] = useState(40)
+const ProfileScreen = ({ navigation }) => {
   const [isExiting, setIsExiting] = useState(false)
   const [profile, setProfile] = useState(null)
+  const [isEditSheetVisible, setIsEditSheetVisible] = useState(false)
   const { logout } = useContext(AuthContext)
 
   useEffect(() => {
@@ -27,12 +28,6 @@ const ProfileScreen = () => {
 
     loadProfile()
   }, [])
-
-  const handleTextLayout = (event) => {
-    const { height } = event.nativeEvent.layout
-    const totalHeight = height + 22 + 8
-    setUserNameHeight(Math.max(40, totalHeight))
-  }
 
   const handleExit = async () => {
     setIsExiting(true)
@@ -59,43 +54,67 @@ const ProfileScreen = () => {
     <AppLayout background={backgrounds.hourglassProfile} scroll={false}>
       <View style={styles.content}>
         <View style={styles.userCard}>
-          <Image source={require('@assets/avatar.png')} />
-
-          <View style={styles.userInfo}>
-            <View
-              style={[styles.userNameContainer, { height: userNameHeight }]}
-            >
-              <View
-                style={[styles.userNameBorder, { height: userNameHeight }]}
+          {/* Аватар */}
+          <View style={styles.avatarContainer}>
+            {profile?.data?.user?.avatar ? (
+              <Image
+                source={{
+                  uri: `${
+                    process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000'
+                  }${profile.data.user.avatar}`,
+                }}
+                style={styles.avatarImage}
+                defaultSource={require('@assets/avatar.png')}
               />
+            ) : (
+              <Image
+                source={require('@assets/avatar.png')}
+                style={styles.avatarImage}
+              />
+            )}
+          </View>
 
-              <AppText
-                style={styles.userName}
-                numberOfLines={3}
-                ellipsizeMode="tail"
-                onLayout={handleTextLayout}
-              >
-                {profile?.data?.user?.name}
-              </AppText>
-
-              <View style={styles.userNameLabelContainer}>
-                <AppText style={styles.userNameLabel}>Имя пользователя</AppText>
+          {/* Информация о пользователе */}
+          <View style={styles.userInfo}>
+            <View style={styles.userNameRow}>
+              <View style={styles.userNameContainer}>
+                <View style={styles.userNameBorder}>
+                  <AppText
+                    style={styles.userName}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {profile?.data?.user?.name || 'Имя пользователя'}
+                  </AppText>
+                  <View style={styles.userNameLabelContainer}>
+                    <AppText style={styles.userNameLabel}>
+                      Имя пользователя
+                    </AppText>
+                  </View>
+                </View>
               </View>
-            </View>
-            <View style={styles.editInfo}>
-              <TouchableOpacity style={styles.editButton}>
-                <Image source={require('@assets/write.png')} />
-              </TouchableOpacity>
+              <View style={styles.rightSection}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => setIsEditSheetVisible(true)}
+                >
+                  <Image
+                    source={require('@assets/write.png')}
+                    style={styles.editIcon}
+                  />
+                </TouchableOpacity>
 
-              <View style={styles.badges}>
-                <Image
-                  source={require('@assets/baiduOrange.png')}
-                  style={styles.badgeOrange}
-                />
-                <Image
-                  source={require('@assets/baiduGreen.png')}
-                  style={styles.badgeGreen}
-                />
+                {/* Декоративные элементы */}
+                <View style={styles.badges}>
+                  <Image
+                    source={require('@assets/baiduOrange.png')}
+                    style={styles.badgeOrange}
+                  />
+                  <Image
+                    source={require('@assets/baiduGreen.png')}
+                    style={styles.badgeGreen}
+                  />
+                </View>
               </View>
             </View>
           </View>
@@ -103,7 +122,10 @@ const ProfileScreen = () => {
 
         <View style={styles.additionalInfo}>
           <View style={styles.additionalContent}>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation?.navigate('SavedPosts')}
+            >
               <AppText fontFamily="Unbounded-Regular" style={styles.actionText}>
                 Сохраненные посты
               </AppText>
@@ -114,7 +136,10 @@ const ProfileScreen = () => {
               />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation?.navigate('MyPosts')}
+            >
               <AppText fontFamily="Unbounded-Regular" style={styles.actionText}>
                 Мои объявления
               </AppText>
@@ -143,17 +168,25 @@ const ProfileScreen = () => {
                 style={styles.actionIcon}
               />
             </TouchableOpacity>
-
-            {/* <View style={styles.petsRow}>
-              <TouchableOpacity>
-                <Image source={require('@assets/dogInactive.png')} />
-              </TouchableOpacity>
-
-              <Image source={require('@assets/dogActive.png')} />
-            </View> */}
           </View>
         </View>
       </View>
+
+      <EditUserBottomSheet
+        user={profile?.data?.user}
+        visible={isEditSheetVisible}
+        onClose={() => setIsEditSheetVisible(false)}
+        onSaved={async () => {
+          setIsEditSheetVisible(false)
+          // Перезагружаем профиль
+          try {
+            const data = await userApi.getProfile()
+            setProfile(data)
+          } catch (e) {
+            console.error('Ошибка загрузки профиля', e)
+          }
+        }}
+      />
     </AppLayout>
   )
 }
@@ -170,46 +203,76 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 20,
     flexDirection: 'row',
-    paddingVertical: 15,
+    paddingVertical: 20,
     paddingHorizontal: 20,
+    alignItems: 'flex-start',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+
+  avatarContainer: {
+    marginRight: 16,
+  },
+
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: colors.lowGreen,
   },
 
   userInfo: {
-    marginLeft: 0,
     flex: 1,
     flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: 100,
+  },
+
+  userNameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
 
   userNameContainer: {
-    position: 'relative',
-    marginBottom: 6,
+    flex: 1,
+    marginRight: 12,
+  },
+
+  rightSection: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
   },
 
   userNameBorder: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: 180,
     borderRadius: 12,
     borderWidth: 3,
     borderColor: colors.green,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 48,
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    position: 'relative',
   },
 
   userName: {
-    position: 'absolute',
-    left: 21,
-    top: 15,
     fontSize: 16,
     color: colors.fullBlack,
-    flexShrink: 1,
-    flexWrap: 'wrap',
-    width: 140,
+    fontFamily: 'Cruinn-Regular',
+    lineHeight: 20,
+    paddingRight: 80,
   },
 
   userNameLabelContainer: {
     position: 'absolute',
-    bottom: -7,
-    right: 15,
+    bottom: -8,
+    right: 12,
     backgroundColor: colors.white,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -217,36 +280,34 @@ const styles = StyleSheet.create({
 
   userNameLabel: {
     fontSize: 10,
-    color: colors.fullBlack,
-  },
-
-  editInfo: {
-    alignSelf: 'flex-end',
-    marginTop: 0,
-    alignItems: 'flex-end',
+    color: colors.gray,
+    fontFamily: 'Cruinn-Regular',
   },
 
   editButton: {
-    top: 5,
-    marginBottom: 6,
-    marginRight: 10,
+    padding: 0,
+    marginBottom: 5,
+    top: 15,
+    right: 15,
+  },
+
+  editIcon: {
+    width: 20,
+    height: 20,
   },
 
   badges: {
-    flexDirection: 'row',
-    marginTop: 6,
-    gap: 6,
-    top: 10,
-    left: 10,
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 8,
   },
 
   badgeOrange: {
-    bottom: 15,
+    top: 30,
+    right: 40,
   },
 
-  badgeGreen: {
-    top: 10,
-  },
+  badgeGreen: {},
 
   additionalInfo: {
     width: '90%',

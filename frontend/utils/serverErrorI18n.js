@@ -29,6 +29,8 @@ export const serverErrorMap = {
 
   // USERS
   USER_NOT_FOUND: 'Пользователь не найден',
+  INVALID_PASSWORD: 'Неверный пароль',
+  MISSING_PASSWORD: 'Не указан пароль',
 
   // FAVORITES
   FAVORITE_ALREADY_EXISTS: 'Пост уже в избранном',

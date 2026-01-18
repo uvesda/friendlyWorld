@@ -1,4 +1,5 @@
 const PostModel = require('../models/postModel')
+const PostPhotoModel = require('../models/postPhotoModel')
 const AppError = require('../utils/AppError')
 const ERRORS = require('../utils/errors')
 
@@ -11,7 +12,18 @@ module.exports = {
   },
 
   async getAll(filters) {
-    return await PostModel.getAll(filters)
+    const posts = await PostModel.getAll(filters)
+    // Загружаем фотографии для каждого поста
+    const postsWithPhotos = await Promise.all(
+      posts.map(async (post) => {
+        const photos = await PostPhotoModel.getByPost(post.id)
+        return {
+          ...post,
+          photos: photos || [],
+        }
+      })
+    )
+    return postsWithPhotos
   },
 
   async getById(id) {
@@ -19,11 +31,26 @@ module.exports = {
     if (!post) {
       throw new AppError(ERRORS.POST_NOT_FOUND, 404)
     }
-    return post
+    const photos = await PostPhotoModel.getByPost(post.id)
+    return {
+      ...post,
+      photos: photos || [],
+    }
   },
 
   async getMyPosts(userId) {
-    return await PostModel.getByAuthor(userId)
+    const posts = await PostModel.getByAuthor(userId)
+    // Загружаем фотографии для каждого поста
+    const postsWithPhotos = await Promise.all(
+      posts.map(async (post) => {
+        const photos = await PostPhotoModel.getByPost(post.id)
+        return {
+          ...post,
+          photos: photos || [],
+        }
+      })
+    )
+    return postsWithPhotos
   },
 
   async delete(postId, userId) {

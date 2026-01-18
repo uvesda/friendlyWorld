@@ -4,18 +4,18 @@ import { tokenStorage } from './tokenStorage'
 export const auth = {
   async login(email, password) {
     const response = await authApi.login(email, password)
-    const { accessToken, refreshToken } = response.data
+    const { accessToken, refreshToken, user } = response.data
     if (!accessToken || !refreshToken) throw new Error('Invalid tokens')
     await tokenStorage.setTokens(accessToken, refreshToken)
-    return response.data.user
+    return user
   },
 
   async register(name, email, password) {
     const response = await authApi.register(name, email, password)
-    const { accessToken, refreshToken } = response.data
+    const { accessToken, refreshToken, user } = response.data
     if (!accessToken || !refreshToken) throw new Error('Invalid tokens')
     await tokenStorage.setTokens(accessToken, refreshToken)
-    return response.data.user
+    return user
   },
 
   async isLoggedIn() {

@@ -11,4 +11,9 @@ export const userApi = {
     baseApi.post('/me/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+
+  deleteAvatar: () => baseApi.delete('/me/avatar'),
+
+  changePassword: (oldPassword, newPassword) =>
+    baseApi.put('/me/password', { oldPassword, newPassword }),
 }

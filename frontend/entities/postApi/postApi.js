@@ -25,6 +25,9 @@ export const postApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
 
+  deletePhoto: (postId, photoId) =>
+    baseApi.delete(`/posts/${postId}/photos/${photoId}`),
+
   getComments: (postId) => baseApi.get(`/posts/${postId}/comments`),
 
   createComment: (postId, text) =>

@@ -24,6 +24,8 @@ router.post(
   upload.single('avatar'),
   UserController.updateAvatar
 )
+router.delete('/me/avatar', auth, UserController.deleteAvatar)
+router.put('/me/password', auth, UserController.changePassword)
 router.get('/user/:id', auth, UserController.getUserById)
 
 module.exports = router

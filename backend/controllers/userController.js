@@ -40,4 +40,30 @@ module.exports = {
       next(e)
     }
   },
+
+  async deleteAvatar(req, res, next) {
+    try {
+      const result = await UserService.deleteAvatar(req.user.id)
+      success(res, result)
+    } catch (e) {
+      next(e)
+    }
+  },
+
+  async changePassword(req, res, next) {
+    try {
+      const { oldPassword, newPassword } = req.body
+      if (!oldPassword || !newPassword) {
+        throw new AppError('MISSING_PASSWORD', 400)
+      }
+      const result = await UserService.changePassword(
+        req.user.id,
+        oldPassword,
+        newPassword
+      )
+      success(res, result)
+    } catch (e) {
+      next(e)
+    }
+  },
 }

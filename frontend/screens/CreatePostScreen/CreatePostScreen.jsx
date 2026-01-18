@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   View,
   StyleSheet,
@@ -11,6 +11,8 @@ import {
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
+import DateTimePicker from '@react-native-community/datetimepicker'
+import MapView, { Marker } from 'react-native-maps'
 import { backgrounds, colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
 import { TextInputField } from '@components/TextInputField/TextInputField'
@@ -23,6 +25,14 @@ import { getServerErrorMessage } from '@utils/getServerErrorMessage'
 const CreatePostScreen = ({ navigation }) => {
   const [selectedImages, setSelectedImages] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showTimePicker, setShowTimePicker] = useState(false)
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 55.7558, // Москва по умолчанию
+    longitude: 37.6173,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  })
 
   const {
     control,
@@ -40,10 +50,12 @@ const CreatePostScreen = ({ navigation }) => {
       latitude: '',
       longitude: '',
     },
+    mode: 'onChange',
   })
 
-  const eventDate = watch('event_date')
   const status = watch('status')
+  const latitude = watch('latitude')
+  const longitude = watch('longitude')
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -93,6 +105,11 @@ const CreatePostScreen = ({ navigation }) => {
       return
     }
 
+    if (!data.latitude || !data.longitude) {
+      Alert.alert('Ошибка', 'Выберите место на карте')
+      return
+    }
+
     setUploading(true)
     try {
       const postData = {
@@ -100,9 +117,9 @@ const CreatePostScreen = ({ navigation }) => {
         description: data.description || null,
         event_date: formatDate(data.event_date),
         address: data.address,
-        latitude: parseFloat(data.latitude) || 0,
-        longitude: parseFloat(data.longitude) || 0,
-        hashtag: data.hashtag,
+        latitude: parseFloat(data.latitude),
+        longitude: parseFloat(data.longitude),
+        hashtag: data.hashtag?.trim().toLowerCase() || '',
       }
 
       const response = await postApi.create(postData)
@@ -160,13 +177,15 @@ const CreatePostScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[
                 styles.statusButton,
-                status === 'lost' && styles.statusButtonActive,
+                styles.statusButtonLost,
+                status === 'lost' && styles.statusButtonActiveLost,
               ]}
               onPress={() => setValue('status', 'lost')}
             >
               <AppText
                 style={[
                   styles.statusButtonText,
+                  styles.statusButtonTextLost,
                   status === 'lost' && styles.statusButtonTextActive,
                 ]}
               >
@@ -176,13 +195,15 @@ const CreatePostScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[
                 styles.statusButton,
-                status === 'found' && styles.statusButtonActive,
+                styles.statusButtonFound,
+                status === 'found' && styles.statusButtonActiveFound,
               ]}
               onPress={() => setValue('status', 'found')}
             >
               <AppText
                 style={[
                   styles.statusButtonText,
+                  styles.statusButtonTextFound,
                   status === 'found' && styles.statusButtonTextActive,
                 ]}
               >
@@ -217,40 +238,106 @@ const CreatePostScreen = ({ navigation }) => {
           />
 
           {/* Дата события */}
-          <View>
+          <View style={styles.dateSection}>
             <Controller
               control={control}
               name="event_date"
               rules={{ required: 'Дата события обязательна' }}
               render={({ field: { onChange, value } }) => (
                 <>
-                  <TextInputField
-                    placeholder="Дата события (ГГГГ-ММ-ДД ЧЧ:ММ) *"
-                    value={value ? formatDate(value) : ''}
-                    onChangeText={(text) => {
-                      // Парсим дату из строки формата "YYYY-MM-DD HH:MM"
-                      const dateMatch = text.match(
-                        /(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/
-                      )
-                      if (dateMatch) {
-                        const [, year, month, day, hours, minutes] = dateMatch
-                        const date = new Date(
-                          parseInt(year),
-                          parseInt(month) - 1,
-                          parseInt(day),
-                          parseInt(hours),
-                          parseInt(minutes)
-                        )
-                        if (!isNaN(date.getTime())) {
-                          onChange(date)
-                        }
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => {
+                      if (Platform.OS === 'android') {
+                        setShowDatePicker(true)
+                      } else {
+                        setShowDatePicker(true)
                       }
                     }}
-                    keyboardType="numeric"
-                  />
-                  <AppText style={styles.hintText}>
-                    Формат: ГГГГ-ММ-ДД ЧЧ:ММ (например: 2025-10-11 14:30)
-                  </AppText>
+                  >
+                    <AppText style={styles.dateButtonText}>
+                      {value ? formatDate(value) : 'Выберите дату и время *'}
+                    </AppText>
+                  </TouchableOpacity>
+                  {Platform.OS === 'android' && (
+                    <>
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={value || new Date()}
+                          mode="date"
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            setShowDatePicker(false)
+                            if (selectedDate) {
+                              const currentDate = value || new Date()
+                              const newDate = new Date(selectedDate)
+                              newDate.setHours(currentDate.getHours())
+                              newDate.setMinutes(currentDate.getMinutes())
+                              onChange(newDate)
+                              setTimeout(() => setShowTimePicker(true), 100)
+                            }
+                          }}
+                        />
+                      )}
+                      {showTimePicker && (
+                        <DateTimePicker
+                          value={value || new Date()}
+                          mode="time"
+                          display="default"
+                          is24Hour={true}
+                          onChange={(event, selectedTime) => {
+                            setShowTimePicker(false)
+                            if (selectedTime) {
+                              const currentDate = value || new Date()
+                              const newDate = new Date(currentDate)
+                              newDate.setHours(selectedTime.getHours())
+                              newDate.setMinutes(selectedTime.getMinutes())
+                              onChange(newDate)
+                            }
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                  {Platform.OS === 'ios' && showDatePicker && (
+                    <View style={styles.iosPickerContainer}>
+                      <View style={styles.iosPickerButtons}>
+                        <TouchableOpacity
+                          style={styles.iosPickerButton}
+                          onPress={() => setShowDatePicker(false)}
+                        >
+                          <AppText style={styles.iosPickerButtonText}>
+                            Отмена
+                          </AppText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.iosPickerButton}
+                          onPress={() => setShowDatePicker(false)}
+                        >
+                          <AppText
+                            style={[
+                              styles.iosPickerButtonText,
+                              styles.iosPickerButtonTextConfirm,
+                            ]}
+                          >
+                            Готово
+                          </AppText>
+                        </TouchableOpacity>
+                      </View>
+                      <DateTimePicker
+                        value={value || new Date()}
+                        mode="datetime"
+                        display="spinner"
+                        is24Hour={true}
+                        onChange={(event, selectedDate) => {
+                          if (event.type !== 'dismissed' && selectedDate) {
+                            onChange(selectedDate)
+                          }
+                        }}
+                        style={styles.iosPicker}
+                      />
+                    </View>
+                  )}
                 </>
               )}
             />
@@ -283,36 +370,98 @@ const CreatePostScreen = ({ navigation }) => {
             )}
           />
 
-          {/* Координаты */}
-          <View style={styles.coordinatesRow}>
+          {/* Координаты - выбор на карте */}
+          <View style={styles.mapSection}>
+            <AppText style={styles.sectionTitle}>
+              Выберите место на карте *
+            </AppText>
             <Controller
               control={control}
               name="latitude"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View style={styles.coordinateInput}>
-                  <TextInputField
-                    placeholder="Широта"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    keyboardType="numeric"
-                  />
-                </View>
-              )}
-            />
-            <Controller
-              control={control}
-              name="longitude"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View style={styles.coordinateInput}>
-                  <TextInputField
-                    placeholder="Долгота"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    keyboardType="numeric"
-                  />
-                </View>
+              rules={{
+                required: 'Выберите место на карте',
+                validate: (value) => {
+                  const lng = watch('longitude')
+                  if (!value || !lng) {
+                    return 'Выберите место на карте'
+                  }
+                  return true
+                },
+              }}
+              render={() => (
+                <>
+                  <View style={styles.mapContainer}>
+                    <MapView
+                      style={styles.map}
+                      region={mapRegion}
+                      onRegionChangeComplete={setMapRegion}
+                      onPress={(e) => {
+                        const { latitude, longitude } = e.nativeEvent.coordinate
+                        setValue('latitude', latitude.toString(), {
+                          shouldValidate: true,
+                        })
+                        setValue('longitude', longitude.toString(), {
+                          shouldValidate: true,
+                        })
+                        setMapRegion({
+                          ...mapRegion,
+                          latitude,
+                          longitude,
+                        })
+                      }}
+                      showsUserLocation={true}
+                      showsMyLocationButton={true}
+                    >
+                      {latitude && longitude && (
+                        <Marker
+                          coordinate={{
+                            latitude: parseFloat(latitude),
+                            longitude: parseFloat(longitude),
+                          }}
+                          anchor={{ x: 0.5, y: 0.5 }}
+                          centerOffset={{ x: 0, y: -5 }}
+                        >
+                          <View
+                            style={[
+                              styles.customMarker,
+                              {
+                                borderColor:
+                                  status === 'lost'
+                                    ? colors.lowOrange
+                                    : colors.green,
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.markerPlaceholder,
+                                {
+                                  backgroundColor:
+                                    status === 'lost'
+                                      ? colors.lowOrange
+                                      : colors.green,
+                                },
+                              ]}
+                            >
+                              <View style={styles.markerInnerCircle} />
+                            </View>
+                          </View>
+                        </Marker>
+                      )}
+                    </MapView>
+                  </View>
+                  {errors.latitude && (
+                    <AppText style={styles.errorText}>
+                      {errors.latitude.message}
+                    </AppText>
+                  )}
+                  {latitude && longitude && !errors.latitude && (
+                    <AppText style={styles.coordinatesText}>
+                      Широта: {latitude?.slice(0, 8)} | Долгота:{' '}
+                      {longitude?.slice(0, 8)}
+                    </AppText>
+                  )}
+                </>
               )}
             />
           </View>
@@ -341,7 +490,9 @@ const CreatePostScreen = ({ navigation }) => {
 
           {/* Фотографии */}
           <View style={styles.photosSection}>
-            <AppText style={styles.sectionTitle}>Фотографии</AppText>
+            <AppText style={styles.sectionTitle}>
+              Фотографии ({selectedImages.length}/5)
+            </AppText>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -368,11 +519,6 @@ const CreatePostScreen = ({ navigation }) => {
                 </TouchableOpacity>
               )}
             </ScrollView>
-            {selectedImages.length === 0 && (
-              <AppText style={styles.errorText}>
-                Добавьте хотя бы одну фотографию
-              </AppText>
-            )}
           </View>
 
           {/* Кнопка создания */}
@@ -411,17 +557,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.green,
     backgroundColor: colors.white,
     alignItems: 'center',
   },
-  statusButtonActive: {
+  statusButtonLost: {
+    borderColor: colors.fullBlack,
+  },
+  statusButtonFound: {
+    borderColor: colors.fullBlack,
+  },
+  statusButtonActiveLost: {
+    backgroundColor: colors.lowOrange,
+  },
+  statusButtonActiveFound: {
     backgroundColor: colors.green,
   },
   statusButtonText: {
     fontSize: 14,
-    color: colors.green,
     fontFamily: 'Unbounded-Regular',
+  },
+  statusButtonTextLost: {
+    color: colors.lowOrange,
+  },
+  statusButtonTextFound: {
+    color: colors.green,
   },
   statusButtonTextActive: {
     color: colors.white,
@@ -430,6 +589,9 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
+  dateSection: {
+    marginBottom: 16,
+  },
   dateButton: {
     borderWidth: 1,
     borderColor: colors.lowOrange,
@@ -437,20 +599,86 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: colors.white,
-    marginBottom: 16,
   },
   dateButtonText: {
     fontSize: 16,
     color: colors.fullBlack,
     fontFamily: 'Cruinn-Regular',
   },
-  coordinatesRow: {
+  iosPickerContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    marginTop: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.lowOrange,
+  },
+  iosPickerButtons: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  iosPickerButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  iosPickerButtonText: {
+    fontSize: 16,
+    color: colors.gray,
+    fontFamily: 'Cruinn-Regular',
+  },
+  iosPickerButtonTextConfirm: {
+    color: colors.lowOrange,
+    fontWeight: 'bold',
+  },
+  iosPicker: {
+    height: 200,
+  },
+  mapSection: {
     marginBottom: 16,
   },
-  coordinateInput: {
+  mapContainer: {
+    height: 250,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.lowOrange,
+    marginBottom: 12,
+  },
+  coordinatesText: {
+    color: colors.fullBlack,
+    fontSize: 14,
+    marginTop: 8,
+    fontFamily: 'Cruinn-Regular',
+  },
+  map: {
     flex: 1,
+  },
+  customMarker: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 3,
+    backgroundColor: colors.white,
+    shadowColor: colors.fullBlack,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  markerPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  markerInnerCircle: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.black,
   },
   photosSection: {
     marginBottom: 24,
@@ -467,6 +695,8 @@ const styles = StyleSheet.create({
   photoItem: {
     marginRight: 12,
     position: 'relative',
+    width: 100,
+    height: 100,
   },
   photo: {
     width: 100,
@@ -475,14 +705,21 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.orange,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+    shadowColor: colors.fullBlack,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
   },
   removeButtonText: {
     color: colors.white,

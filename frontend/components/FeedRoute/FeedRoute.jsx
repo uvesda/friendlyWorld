@@ -16,15 +16,24 @@ const FeedRoute = ({
   onPostPress,
   onCommentsPress,
   onFavoritePostIdsUpdate,
+  searchHashtag,
+  statusFilter,
 }) => {
   const [posts, setPosts] = useState([])
   const [favoritePostIds, setFavoritePostIds] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     try {
-      const response = await postApi.getAll()
+      const filters = {}
+      if (searchHashtag?.trim()) {
+        filters.hashtag = searchHashtag.trim().toLowerCase()
+      }
+      if (statusFilter) {
+        filters.status = statusFilter
+      }
+      const response = await postApi.getAll(filters)
       setPosts(response.data || [])
     } catch (e) {
       console.error('Ошибка загрузки постов', e)
@@ -33,32 +42,30 @@ const FeedRoute = ({
       setLoading(false)
       setRefreshing(false)
     }
-  }
+  }, [searchHashtag, statusFilter])
 
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     try {
       const response = await postApi.getFavorites()
       const favoritePosts = response.data || []
       const ids = new Set(favoritePosts.map((post) => post.id))
       setFavoritePostIds(ids)
-      // Обновляем состояние в родительском компоненте
       onFavoritePostIdsUpdate?.(ids)
-    } catch (e) {
-      // Если пользователь не авторизован, просто игнорируем ошибку
+    } catch {
       console.log('Не удалось загрузить избранные')
     }
-  }
+  }, [onFavoritePostIdsUpdate])
 
   useEffect(() => {
     loadPosts()
     loadFavorites()
-  }, [])
+  }, [loadPosts, loadFavorites])
 
   const onRefresh = useCallback(() => {
     setRefreshing(true)
     loadPosts()
     loadFavorites()
-  }, [])
+  }, [loadPosts, loadFavorites])
 
   const handleFavoriteToggle = async (post) => {
     if (!post?.id) return
@@ -91,8 +98,6 @@ const FeedRoute = ({
   }
 
   const getPostPhoto = (post) => {
-    // Если есть фото в посте, возвращаем первое
-    // В противном случае можно вернуть null или placeholder
     return post.photos?.[0] || null
   }
 
