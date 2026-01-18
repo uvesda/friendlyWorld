@@ -17,3 +17,5 @@ services:
         value: https://iewinrhbplslclqoswgp.supabase.co
       - key: SUPABASE_ANON_KEY
         value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlld2lucmhicGxzbGNscW9zd2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3NjM4MTUsImV4cCI6MjA4NDMzOTgxNX0.LWUM5QlZrcVjLqzP-r276QzE4nmMCJGsj306pt1vRdY
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlld2lucmhicGxzbGNscW9zd2dwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODc2MzgxNSwiZXhwIjoyMDg0MzM5ODE1fQ.Z96kXsDUjOvz5CKizB0eXVEyOfy7Ctnb6QPXvrHSN-Q

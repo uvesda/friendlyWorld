@@ -5,7 +5,8 @@ const supabase = require('../config/supabase')
 const path = require('path')
 const fs = require('fs')
 
-const hasSupabaseConfig = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
+const hasSupabaseConfig = process.env.SUPABASE_URL && 
+  (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
 
 module.exports = {
   async getProfile(userId) {

@@ -6,7 +6,8 @@ const AppError = require('../utils/AppError')
 const ERRORS = require('../utils/errors')
 const supabase = require('../config/supabase')
 
-const hasSupabaseConfig = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
+const hasSupabaseConfig = process.env.SUPABASE_URL && 
+  (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
 
 module.exports = {
   async upload(postId, userId, files) {

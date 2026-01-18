@@ -4,7 +4,9 @@ const fs = require('fs')
 const supabase = require('../config/supabase')
 
 // Проверяем, настроен ли Supabase
-const hasSupabaseConfig = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
+// Используем SERVICE_ROLE_KEY или ANON_KEY
+const hasSupabaseConfig = process.env.SUPABASE_URL && 
+  (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
 
 let storage
 

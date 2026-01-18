@@ -42,6 +42,8 @@ export const postApi = {
       throw error
     }
     
+    let timeoutId = null
+    
     try {
       const headers = {}
       if (token) {
@@ -59,7 +61,6 @@ export const postApi = {
       
       // Добавляем таймаут для fetch
       const controller = new AbortController()
-      let timeoutId
       if (typeof setTimeout !== 'undefined') {
         timeoutId = setTimeout(() => {
           console.error('⏱️ Request timeout after 60 seconds')
@@ -76,6 +77,7 @@ export const postApi = {
       
       if (timeoutId) {
         clearTimeout(timeoutId)
+        timeoutId = null
       }
       
       console.log('📥 Fetch response received:', {
@@ -94,7 +96,7 @@ export const postApi = {
           errorData = { message: text }
         }
         console.error('❌ Fetch error response:', errorData)
-        const error = new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`)
+        const error = new Error(errorData.message || errorData.error || errorData.details || `HTTP error! status: ${response.status}`)
         error.response = {
           status: response.status,
           data: errorData,
@@ -106,7 +108,7 @@ export const postApi = {
       console.log('✅ Fetch upload successful:', data)
       return { data }
     } catch (error) {
-      if (typeof clearTimeout !== 'undefined' && timeoutId) {
+      if (timeoutId) {
         clearTimeout(timeoutId)
       }
       console.error('❌ Fetch upload error:', error)
