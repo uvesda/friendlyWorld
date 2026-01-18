@@ -48,14 +48,6 @@ const handleMulterError = (err, req, res, next) => {
   next()
 }
 
-// Добавляем OPTIONS для CORS preflight
-router.options('/:id/photos', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.sendStatus(200)
-})
-
 router.post('/:id/photos', auth, logRequest, upload.array('photos', 5), handleMulterError, Controller.upload)
 
 router.get('/:id/photos', Controller.get)
