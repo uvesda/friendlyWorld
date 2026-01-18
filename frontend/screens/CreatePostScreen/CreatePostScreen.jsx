@@ -105,7 +105,13 @@ const CreatePostScreen = ({ navigation }) => {
       return
     }
 
+    if (uploading) {
+      return // Предотвращаем множественные нажатия
+    }
+
     setUploading(true)
+    let createdPostId = null
+
     try {
       const postData = {
         status: data.status,
@@ -118,23 +124,48 @@ const CreatePostScreen = ({ navigation }) => {
       }
 
       const response = await postApi.create(postData)
-      const postId = response.data?.id || response.id
+      createdPostId = response.data?.id || response.id
 
-      if (!postId) {
+      if (!createdPostId) {
         throw new Error('Не удалось получить ID созданного поста')
       }
 
       if (selectedImages.length > 0) {
         const formData = new FormData()
         selectedImages.forEach((image, index) => {
+          // В React Native нужно использовать правильный формат для FormData
+          const fileExtension = image.uri.split('.').pop() || 'jpg'
+          const fileName = image.name || `photo_${index}.${fileExtension}`
+          const fileType = image.type || `image/${fileExtension === 'png' ? 'png' : 'jpeg'}`
+
           formData.append('photos', {
-            uri: image.uri,
-            type: image.type || 'image/jpeg',
-            name: image.name || `photo_${index}.jpg`,
-          })
+            uri: Platform.OS === 'android' ? image.uri : image.uri.replace('file://', ''),
+            type: fileType,
+            name: fileName,
+          } as any)
         })
 
-        await postApi.uploadPhotos(postId, formData)
+        console.log('Uploading photos:', {
+          postId: createdPostId,
+          imagesCount: selectedImages.length,
+        })
+
+        try {
+          await postApi.uploadPhotos(createdPostId, formData)
+          console.log('Photos uploaded successfully')
+        } catch (uploadError) {
+          console.error('Photo upload error:', uploadError)
+          // Если загрузка фото не удалась, удаляем созданный пост
+          if (createdPostId) {
+            try {
+              await postApi.delete(createdPostId)
+              console.log('Post deleted after photo upload failure')
+            } catch (deleteError) {
+              console.error('Error deleting post after photo upload failure:', deleteError)
+            }
+          }
+          throw uploadError
+        }
       }
 
       Alert.alert('Успех', 'Пост успешно создан', [
@@ -146,7 +177,9 @@ const CreatePostScreen = ({ navigation }) => {
         },
       ])
     } catch (e) {
-      Alert.alert('Ошибка', getServerErrorMessage(e))
+      console.error('Error creating post:', e)
+      const errorMessage = getServerErrorMessage(e)
+      Alert.alert('Ошибка', errorMessage || 'Произошла ошибка при создании поста')
     } finally {
       setUploading(false)
     }

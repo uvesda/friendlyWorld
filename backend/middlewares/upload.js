@@ -31,17 +31,55 @@ if (hasSupabaseConfig && supabase) {
 }
 
 const fileFilter = (req, file, cb) => {
-  if (!file.mimetype.startsWith('image/')) {
+  console.log('File filter:', {
+    fieldname: file.fieldname,
+    originalname: file.originalname,
+    mimetype: file.mimetype,
+  })
+
+  if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    console.error('Invalid file type:', file.mimetype)
     cb(new Error('Only images allowed'))
   } else {
     cb(null, true)
   }
 }
 
-module.exports = multer({
+const upload = multer({
   storage,
   fileFilter,
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB
   },
 })
+
+// Добавляем обработчик ошибок multer
+upload.any = function() {
+  return function(req, res, next) {
+    const middleware = multer({
+      storage,
+      fileFilter,
+      limits: {
+        fileSize: 100 * 1024 * 1024,
+      },
+    }).any.apply(this, arguments)
+
+    middleware(req, res, (err) => {
+      if (err) {
+        console.error('Multer error:', err)
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return next(new Error('FILE_TOO_LARGE'))
+          }
+          if (err.code === 'LIMIT_FILE_COUNT') {
+            return next(new Error('TOO_MANY_FILES'))
+          }
+        }
+        return next(err)
+      }
+      next()
+    })
+  }
+}
+
+module.exports = upload

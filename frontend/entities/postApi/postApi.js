@@ -22,7 +22,10 @@ export const postApi = {
 
   uploadPhotos: (postId, formData) =>
     baseApi.post(`/posts/${postId}/photos`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 30000, // 30 секунд для загрузки файлов
     }),
 
   deletePhoto: (postId, photoId) =>

@@ -5,6 +5,24 @@ const AppError = require('../utils/AppError')
 module.exports = {
   async upload(req, res, next) {
     try {
+      console.log('Upload photos request:', {
+        postId: req.params.id,
+        userId: req.user.id,
+        filesCount: req.files?.length || 0,
+        files: req.files?.map(f => ({
+          originalname: f.originalname,
+          mimetype: f.mimetype,
+          size: f.size,
+          hasBuffer: !!f.buffer,
+          hasFilename: !!f.filename,
+        })),
+      })
+
+      if (!req.files || req.files.length === 0) {
+        console.error('No files in request')
+        return next(new AppError('NO_FILES_UPLOADED', 400))
+      }
+
       const result = await PostPhotoService.upload(
         req.params.id,
         req.user.id,
@@ -12,6 +30,7 @@ module.exports = {
       )
       success(res, result, 201)
     } catch (e) {
+      console.error('Error in upload controller:', e)
       next(e)
     }
   },

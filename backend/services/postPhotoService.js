@@ -27,11 +27,27 @@ module.exports = {
     for (const file of files) {
       let filePath
 
+      console.log('Processing file:', {
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        hasBuffer: !!file.buffer,
+        hasFilename: !!file.filename,
+        hasSupabaseConfig,
+        supabaseExists: !!supabase,
+      })
+
       if (hasSupabaseConfig && supabase && file.buffer) {
         // Загружаем в Supabase Storage
-        const ext = path.extname(file.originalname)
+        const ext = path.extname(file.originalname) || '.jpg'
         const fileName = `post_${postId}_${Date.now()}${ext}`
         const filePathInStorage = `posts/${fileName}`
+
+        console.log('Uploading to Supabase:', {
+          filePathInStorage,
+          contentType: file.mimetype,
+          bufferSize: file.buffer.length,
+        })
 
         const { data, error } = await supabase.storage
           .from('uploads')
@@ -42,19 +58,25 @@ module.exports = {
 
         if (error) {
           console.error('Supabase upload error:', error)
-          throw new AppError('FILE_UPLOAD_FAILED', 500)
+          console.error('Error details:', JSON.stringify(error, null, 2))
+          throw new AppError('FILE_UPLOAD_FAILED', 500, error.message)
         }
+
+        console.log('File uploaded successfully to Supabase:', data)
 
         // Получаем публичный URL
         const {
           data: { publicUrl },
         } = supabase.storage.from('uploads').getPublicUrl(filePathInStorage)
 
+        console.log('Public URL:', publicUrl)
         filePath = publicUrl
       } else if (file.filename) {
         // Локальное хранилище (для разработки)
         filePath = `/uploads/posts/${file.filename}`
+        console.log('Using local storage path:', filePath)
       } else {
+        console.error('File has no buffer and no filename:', file)
         throw new AppError(ERRORS.FILE_REQUIRED, 400)
       }
 
