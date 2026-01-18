@@ -132,38 +132,59 @@ const CreatePostScreen = ({ navigation }) => {
 
       if (selectedImages.length > 0) {
         const formData = new FormData()
+        
+        console.log('📋 Preparing FormData:', {
+          imagesCount: selectedImages.length,
+          images: selectedImages.map(img => ({
+            uri: img.uri?.substring(0, 50) + '...',
+            name: img.name,
+            type: img.type,
+          })),
+        })
+        
         selectedImages.forEach((image, index) => {
           // В React Native нужно использовать правильный формат для FormData
-          const fileExtension = image.uri.split('.').pop() || 'jpg'
+          const fileExtension = image.uri?.split('.').pop() || 'jpg'
           const fileName = image.name || `photo_${index}.${fileExtension}`
           const fileType = image.type || `image/${fileExtension === 'png' ? 'png' : 'jpeg'}`
+          
+          // Правильный формат для React Native
+          let fileUri = image.uri
+          if (Platform.OS === 'ios' && fileUri.startsWith('file://')) {
+            fileUri = fileUri.replace('file://', '')
+          }
+
+          console.log(`📎 Adding file ${index + 1}:`, {
+            fileName,
+            fileType,
+            uri: fileUri?.substring(0, 50) + '...',
+          })
 
           formData.append('photos', {
-            uri: Platform.OS === 'android' ? image.uri : image.uri.replace('file://', ''),
+            uri: fileUri,
             type: fileType,
             name: fileName,
           })
         })
 
-        console.log('Uploading photos:', {
+        console.log('📤 Uploading photos:', {
           postId: createdPostId,
           imagesCount: selectedImages.length,
           baseURL: process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000',
+          uploadURL: `${process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000'}/posts/${createdPostId}/photos`,
         })
 
         try {
+          console.log('📤 Sending request to upload photos...')
           const uploadResponse = await postApi.uploadPhotos(createdPostId, formData)
           console.log('✅ Photos uploaded successfully:', uploadResponse)
         } catch (uploadError) {
           console.error('❌ Photo upload error:', uploadError)
           console.error('Error message:', uploadError?.message)
+          console.error('Error code:', uploadError?.code)
+          console.error('Error name:', uploadError?.name)
           console.error('Error response:', uploadError?.response?.data)
           console.error('Error status:', uploadError?.response?.status)
-          console.error('Error config:', {
-            url: uploadError?.config?.url,
-            method: uploadError?.config?.method,
-            baseURL: uploadError?.config?.baseURL,
-          })
           
           // Если загрузка фото не удалась, удаляем созданный пост
           if (createdPostId) {

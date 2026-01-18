@@ -30,6 +30,18 @@ baseApi.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  
+  // Логируем запросы с FormData для отладки
+  if (config.data instanceof FormData) {
+    console.log('📤 FormData request:', {
+      url: config.url,
+      method: config.method,
+      baseURL: config.baseURL,
+      hasAuth: !!token,
+      timeout: config.timeout,
+    })
+  }
+  
   return config
 })
 
