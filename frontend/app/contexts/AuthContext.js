@@ -35,7 +35,6 @@ export const AuthProvider = ({ children }) => {
               setState({ isLoggedIn: false, loading: false })
             }
           } catch (meError) {
-            console.error('Failed to get user data:', meError)
             await tokenStorage.clear()
             setState({ isLoggedIn: false, loading: false })
           }
@@ -43,7 +42,6 @@ export const AuthProvider = ({ children }) => {
           setState({ isLoggedIn: false, loading: false })
         }
       } catch (e) {
-        console.error('Auth init error:', e)
         await tokenStorage.clear()
         setState({ isLoggedIn: false, loading: false })
       }
@@ -65,7 +63,6 @@ export const AuthProvider = ({ children }) => {
         setState({ isLoggedIn: true, loading: false, user })
       }
     } catch (e) {
-      console.error(e)
       throw e
     }
   }
@@ -84,7 +81,6 @@ export const AuthProvider = ({ children }) => {
         setState({ isLoggedIn: true, loading: false, user })
       }
     } catch (e) {
-      console.error(e)
       throw e
     }
   }
@@ -94,7 +90,6 @@ export const AuthProvider = ({ children }) => {
       await auth.logout()
       setState({ isLoggedIn: false, loading: false })
     } catch (e) {
-      console.error(e)
       setState({ isLoggedIn: false, loading: false })
       throw e
     }

@@ -53,7 +53,6 @@ const MyPostsScreen = () => {
 
       setPosts(myPosts)
     } catch (e) {
-      console.error('Ошибка загрузки моих постов', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setLoading(false)
@@ -73,7 +72,6 @@ const MyPostsScreen = () => {
         const ids = new Set(favoritePosts.map((post) => post.id))
         setFavoritePostIds(ids)
       } catch (e) {
-        console.error('Ошибка загрузки избранных постов', e)
       }
     }
 
@@ -215,7 +213,6 @@ const MyPostsScreen = () => {
           onClose={handleCloseBottomSheet}
           onFavoriteToggle={() => handleFavoriteToggle(selectedPost)}
           onContactPress={() => {
-            console.log('Связаться с автором', selectedPost?.id)
           }}
           scrollToComments={scrollToComments}
         />

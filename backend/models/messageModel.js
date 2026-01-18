@@ -25,12 +25,40 @@ module.exports = {
     })
   },
 
-  async getMessages(chat_id) {
+  async getMessages(chat_id, user_id) {
     return new Promise((resolve, reject) => {
       db.all(
-        `SELECT * FROM messages WHERE chat_id = ? ORDER BY created_at ASC`,
-        [chat_id],
+        `SELECT 
+          m.*,
+          CASE WHEN mr.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_read
+        FROM messages m
+        LEFT JOIN message_reads mr ON m.id = mr.message_id AND mr.user_id = ?
+        WHERE m.chat_id = ? 
+        ORDER BY m.created_at ASC`,
+        [user_id, chat_id],
         (err, rows) => (err ? reject(err) : resolve(rows))
+      )
+    })
+  },
+
+  async markMessagesAsRead(chat_id, user_id) {
+    return new Promise((resolve, reject) => {
+      // Mark all unread messages in this chat as read for this user
+      db.run(
+        `INSERT OR IGNORE INTO message_reads (message_id, user_id)
+         SELECT m.id, ?
+         FROM messages m
+         WHERE m.chat_id = ? 
+           AND m.sender_id != ?
+           AND NOT EXISTS (
+             SELECT 1 FROM message_reads mr 
+             WHERE mr.message_id = m.id AND mr.user_id = ?
+           )`,
+        [user_id, chat_id, user_id, user_id],
+        function (err) {
+          if (err) reject(err)
+          else resolve({ count: this.changes })
+        }
       )
     })
   },

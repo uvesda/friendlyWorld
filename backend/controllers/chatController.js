@@ -35,6 +35,29 @@ module.exports = {
     }
   },
 
+  async markMessagesAsRead(req, res, next) {
+    try {
+      await ChatService.markMessagesAsRead(req.params.chatId, req.user.id)
+      success(res, { success: true })
+    } catch (e) {
+      next(e)
+    }
+  },
+
+  async sendMessage(req, res, next) {
+    try {
+      const { text } = req.body
+      const message = await ChatService.sendMessage(
+        req.user.id,
+        req.params.chatId,
+        text
+      )
+      success(res, message)
+    } catch (e) {
+      next(e)
+    }
+  },
+
   async deleteChatForUser(req, res, next) {
     try {
       await ChatService.deleteChatForUser(req.user.id, req.params.chatId)

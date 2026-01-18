@@ -36,7 +36,6 @@ const FeedRoute = ({
       const response = await postApi.getAll(filters)
       setPosts(response.data || [])
     } catch (e) {
-      console.error('Ошибка загрузки постов', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setLoading(false)
@@ -52,7 +51,6 @@ const FeedRoute = ({
       setFavoritePostIds(ids)
       onFavoritePostIdsUpdate?.(ids)
     } catch {
-      console.log('Не удалось загрузить избранные')
     }
   }, [onFavoritePostIdsUpdate])
 
@@ -115,7 +113,6 @@ const FeedRoute = ({
             onPress={() => onPostPress?.(item)}
             onContactPress={() => {
               onPostPress?.(item)
-              // В bottom sheet будет кнопка связаться
             }}
             onCommentsPress={() => onCommentsPress?.(item)}
             onBookmarkPress={() => handleFavoriteToggle(item)}

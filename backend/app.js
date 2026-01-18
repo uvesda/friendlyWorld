@@ -18,6 +18,14 @@ const app = express()
 // Инициализация таблиц
 initTables()
 
+// Run migration for existing chats (only once, safe to run multiple times)
+const migrateChatUsers = require('./config/migrateChatUsers')
+setTimeout(() => {
+  migrateChatUsers().catch((err) => {
+    console.error('Migration error (non-critical):', err.message)
+  })
+}, 1000) // Run after tables are initialized
+
 // Middleware
 app.use(cors())
 app.use(express.json())

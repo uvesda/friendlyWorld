@@ -1,15 +1,17 @@
-import { useRef, useCallback, useMemo, useEffect } from 'react'
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native'
-import BottomSheetModal, { BottomSheetBackdrop } from '@gorhom/bottom-sheet'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import { View, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native'
+import BottomSheetModal, {
+  BottomSheetBackdrop,
+} from '@gorhom/bottom-sheet'
 import { colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
-import { postApi } from '@entities/postApi/postApi'
+import { chatApi } from '@entities/chatApi/chatApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
 
-const PostActionBottomSheet = ({ post, visible, onClose, onEdit, onDeleted }) => {
+const ChatActionBottomSheet = ({ chat, visible, onClose, onDeleted }) => {
   const bottomSheetModalRef = useRef(null)
 
-  const snapPoints = useMemo(() => [200], [])
+  const snapPoints = useMemo(() => [150], [])
 
   const handleSheetChanges = useCallback(
     (index) => {
@@ -40,7 +42,7 @@ const PostActionBottomSheet = ({ post, visible, onClose, onEdit, onDeleted }) =>
   useEffect(() => {
     if (!bottomSheetModalRef.current) return
 
-    if (visible && post) {
+    if (visible && chat) {
       const timeoutId = setTimeout(() => {
         const ref = bottomSheetModalRef.current
         if (ref && typeof ref.present === 'function') {
@@ -59,14 +61,14 @@ const PostActionBottomSheet = ({ post, visible, onClose, onEdit, onDeleted }) =>
         } catch {}
       }
     }
-  }, [visible, post])
+  }, [visible, chat])
 
-  const handleDeletePost = async () => {
-    if (!post?.id) return
+  const handleDeleteChat = async () => {
+    if (!chat?.id) return
 
     Alert.alert(
-      'Удалить пост',
-      'Вы уверены, что хотите удалить этот пост?',
+      'Удалить чат',
+      'Вы уверены, что хотите удалить этот чат?',
       [
         { text: 'Отмена', style: 'cancel' },
         {
@@ -74,14 +76,16 @@ const PostActionBottomSheet = ({ post, visible, onClose, onEdit, onDeleted }) =>
           style: 'destructive',
           onPress: async () => {
             try {
-              await postApi.delete(post.id)
+              await chatApi.deleteChat(chat.id)
               if (
                 bottomSheetModalRef.current &&
                 typeof bottomSheetModalRef.current.dismiss === 'function'
               ) {
                 bottomSheetModalRef.current.dismiss()
               }
-              onDeleted?.()
+              setTimeout(() => {
+                onDeleted?.()
+              }, 100)
             } catch (e) {
               Alert.alert('Ошибка', getServerErrorMessage(e))
             }
@@ -91,18 +95,7 @@ const PostActionBottomSheet = ({ post, visible, onClose, onEdit, onDeleted }) =>
     )
   }
 
-  const handleEditPost = () => {
-    if (!post) return
-    if (
-      bottomSheetModalRef.current &&
-      typeof bottomSheetModalRef.current.dismiss === 'function'
-    ) {
-      bottomSheetModalRef.current.dismiss()
-    }
-    onEdit?.(post)
-  }
-
-  if (!post) return null
+  if (!chat) return null
 
   return (
     <BottomSheetModal
@@ -116,14 +109,15 @@ const PostActionBottomSheet = ({ post, visible, onClose, onEdit, onDeleted }) =>
       backgroundStyle={styles.bottomSheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
       backdropComponent={renderBackdrop}
+      keyboardBehavior={Platform.OS === 'ios' ? 'fillParent' : 'interactive'}
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
+      enableBlurKeyboardOnGesture={true}
     >
       <View style={styles.content}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleEditPost}>
-          <AppText style={styles.actionButtonText}>Редактировать</AppText>
-        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.deleteButton]}
-          onPress={handleDeletePost}
+          onPress={handleDeleteChat}
         >
           <AppText style={styles.deleteButtonText}>Удалить</AppText>
         </TouchableOpacity>
@@ -153,12 +147,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: colors.lowGreen,
   },
-  actionButtonText: {
-    fontSize: 16,
-    color: colors.fullBlack,
-    textAlign: 'center',
-    fontFamily: 'Unbounded-Regular',
-  },
   deleteButton: {
     backgroundColor: colors.orange,
   },
@@ -170,4 +158,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default PostActionBottomSheet
+export default ChatActionBottomSheet

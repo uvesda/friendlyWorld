@@ -47,7 +47,6 @@ const FilterBottomSheet = ({
           try {
             ref.snapToIndex(0)
           } catch (error) {
-            console.warn('Could not open FilterBottomSheet:', error.message)
           }
         }
       }, 100)

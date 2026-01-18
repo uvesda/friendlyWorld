@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { View, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native'
+import { View, StyleSheet, ActivityIndicator, Alert, Image, TouchableOpacity } from 'react-native'
+import { useFocusEffect } from '@react-navigation/native'
 import MapView, { Marker } from 'react-native-maps'
 import { postApi } from '@entities/postApi/postApi'
 import { colors } from '@assets'
@@ -30,7 +31,6 @@ const MapRoute = ({ onPostPress, searchHashtag, statusFilter }) => {
           photosMap[post.id] = photos[0]
         }
       } catch {
-        console.log(`Не удалось загрузить фото для поста ${post.id}`)
       }
     })
 
@@ -85,7 +85,6 @@ const MapRoute = ({ onPostPress, searchHashtag, statusFilter }) => {
 
       loadFirstPhotos(validPosts)
     } catch (e) {
-      console.error('Ошибка загрузки постов', e)
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setLoading(false)
@@ -95,6 +94,12 @@ const MapRoute = ({ onPostPress, searchHashtag, statusFilter }) => {
   useEffect(() => {
     loadPosts()
   }, [loadPosts])
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPosts()
+    }, [loadPosts])
+  )
 
   const getPhotoUri = (photoPath) => {
     if (!photoPath) return null
@@ -121,7 +126,19 @@ const MapRoute = ({ onPostPress, searchHashtag, statusFilter }) => {
   if (posts.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <AppText>Постов с координатами пока нет</AppText>
+        <AppText style={styles.emptyText}>Постов с координатами пока нет</AppText>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={() => {
+            setLoading(true)
+            loadPosts()
+          }}
+          disabled={loading}
+        >
+          <AppText style={styles.refreshButtonText}>
+            {loading ? 'Загрузка...' : 'Обновить'}
+          </AppText>
+        </TouchableOpacity>
       </View>
     )
   }
@@ -141,7 +158,6 @@ const MapRoute = ({ onPostPress, searchHashtag, statusFilter }) => {
           const firstPhoto = postsWithPhotos[post.id]
           const photoUri = firstPhoto ? getPhotoUri(firstPhoto.path) : null
 
-          // Цвет бордера зависит от статуса: lost - lowOrange, found - green
           const borderColor =
             post.status === 'lost' ? colors.lowOrange : colors.green
 
@@ -197,6 +213,27 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.fullBlack,
+    marginBottom: 20,
+    textAlign: 'center',
+    fontFamily: 'Cruinn-Regular',
+  },
+  refreshButton: {
+    backgroundColor: colors.orange,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    minWidth: 120,
+  },
+  refreshButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    textAlign: 'center',
+    fontFamily: 'Unbounded-Regular',
   },
   customMarker: {
     width: 40,

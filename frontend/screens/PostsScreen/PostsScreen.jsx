@@ -133,7 +133,6 @@ const PostsScreen = ({ navigation }) => {
           onClose={handleCloseBottomSheet}
           onFavoriteToggle={() => handleFavoriteToggle(selectedPost)}
           onContactPress={() => {
-            console.log('Связаться с автором', selectedPost?.id)
           }}
           scrollToComments={scrollToComments}
         />
