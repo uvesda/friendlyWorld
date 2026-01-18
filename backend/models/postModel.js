@@ -98,6 +98,20 @@ module.exports = {
     })
   },
 
+  // Простой метод для проверки существования поста без JOIN (для быстрой проверки)
+  exists(id) {
+    return new Promise((resolve, reject) => {
+      db.get(
+        `SELECT id, author_id FROM posts WHERE id = ?`,
+        [id],
+        (err, row) => {
+          if (err) reject(err)
+          else resolve(row)
+        }
+      )
+    })
+  },
+
   getByAuthor(author_id) {
     return new Promise((resolve, reject) => {
       db.all(

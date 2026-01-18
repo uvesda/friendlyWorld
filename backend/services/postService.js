@@ -56,7 +56,8 @@ module.exports = {
 
   async delete(postId, userId) {
     // Проверяем, существует ли пост и принадлежит ли он пользователю
-    const post = await PostModel.getById(postId)
+    // Используем exists для более надежной проверки
+    const post = await PostModel.exists(postId)
     if (!post) {
       throw new AppError(ERRORS.POST_NOT_FOUND, 404)
     }

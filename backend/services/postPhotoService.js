@@ -79,7 +79,9 @@ module.exports = {
       throw new AppError(ERRORS.NO_FILES_UPLOADED, 400)
     }
 
-    const post = await PostModel.getById(postId)
+    // Используем простой метод exists для быстрой проверки существования поста
+    // Это более надежно для только что созданных постов
+    const post = await PostModel.exists(postId)
     if (!post) {
       throw new AppError(ERRORS.POST_NOT_FOUND, 404)
     }
