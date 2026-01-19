@@ -38,10 +38,21 @@ module.exports = {
 
   delete(photoId) {
     return new Promise((resolve, reject) => {
-      db.run(`DELETE FROM post_photos WHERE id=?`, [photoId], function (err) {
-        if (err) reject(err)
-        else resolve({ changes: this.changes })
-      })
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      
+      if (isPostgreSQL) {
+        db.query(
+          `DELETE FROM post_photos WHERE id=$1`,
+          [photoId]
+        )
+          .then((result) => resolve({ changes: result.rowCount }))
+          .catch(reject)
+      } else {
+        db.run(`DELETE FROM post_photos WHERE id=?`, [photoId], function (err) {
+          if (err) reject(err)
+          else resolve({ changes: this.changes })
+        })
+      }
     })
   },
 
@@ -50,14 +61,25 @@ module.exports = {
       throw new Error('Photo path cannot be empty')
 
     return new Promise((resolve, reject) => {
-      db.run(
-        `UPDATE post_photos SET path=? WHERE id=?`,
-        [newPath, photoId],
-        function (err) {
-          if (err) reject(err)
-          else resolve({ changes: this.changes })
-        }
-      )
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      
+      if (isPostgreSQL) {
+        db.query(
+          `UPDATE post_photos SET path=$1 WHERE id=$2`,
+          [newPath, photoId]
+        )
+          .then((result) => resolve({ changes: result.rowCount }))
+          .catch(reject)
+      } else {
+        db.run(
+          `UPDATE post_photos SET path=? WHERE id=?`,
+          [newPath, photoId],
+          function (err) {
+            if (err) reject(err)
+            else resolve({ changes: this.changes })
+          }
+        )
+      }
     })
   },
 }

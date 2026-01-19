@@ -50,17 +50,25 @@ module.exports = {
 
   delete(id, author_id) {
     return new Promise((resolve, reject) => {
-      db.run(
-        `
-        DELETE FROM comments 
-        WHERE id = ? AND author_id = ?
-        `,
-        [id, author_id],
-        function (err) {
-          if (err) reject(err)
-          else resolve({ changes: this.changes })
-        }
-      )
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      
+      if (isPostgreSQL) {
+        db.query(
+          `DELETE FROM comments WHERE id = $1 AND author_id = $2`,
+          [id, author_id]
+        )
+          .then((result) => resolve({ changes: result.rowCount }))
+          .catch(reject)
+      } else {
+        db.run(
+          `DELETE FROM comments WHERE id = ? AND author_id = ?`,
+          [id, author_id],
+          function (err) {
+            if (err) reject(err)
+            else resolve({ changes: this.changes })
+          }
+        )
+      }
     })
   },
 
@@ -68,14 +76,25 @@ module.exports = {
     if (!text?.trim()) throw new Error('Comment text cannot be empty')
 
     return new Promise((resolve, reject) => {
-      db.run(
-        `UPDATE comments SET text=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND author_id=?`,
-        [text, id, author_id],
-        function (err) {
-          if (err) reject(err)
-          else resolve({ changes: this.changes })
-        }
-      )
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      
+      if (isPostgreSQL) {
+        db.query(
+          `UPDATE comments SET text=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2 AND author_id=$3`,
+          [text, id, author_id]
+        )
+          .then((result) => resolve({ changes: result.rowCount }))
+          .catch(reject)
+      } else {
+        db.run(
+          `UPDATE comments SET text=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND author_id=?`,
+          [text, id, author_id],
+          function (err) {
+            if (err) reject(err)
+            else resolve({ changes: this.changes })
+          }
+        )
+      }
     })
   },
 }

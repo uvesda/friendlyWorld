@@ -11,11 +11,14 @@ module.exports = {
       throw new AppError(ERRORS.INVALID_INPUT, 400)
     }
 
-    const post = await new Promise((res, rej) =>
-      db.get(`SELECT * FROM posts WHERE id = ?`, [postId], (err, row) =>
-        err ? rej(err) : res(row)
-      )
-    )
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    const post = isPostgreSQL
+      ? await db.query(`SELECT * FROM posts WHERE id = $1`, [postId]).then(result => result.rows[0] || null)
+      : await new Promise((res, rej) =>
+          db.get(`SELECT * FROM posts WHERE id = ?`, [postId], (err, row) =>
+            err ? rej(err) : res(row)
+          )
+        )
     if (!post) {
       throw new AppError(ERRORS.POST_NOT_FOUND, 404)
     }
@@ -127,13 +130,19 @@ module.exports = {
       throw new AppError(ERRORS.INVALID_INPUT, 400)
     }
 
-    const chat = await new Promise((res, rej) =>
-      db.get(
-        `SELECT * FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)`,
-        [chatId, senderId, senderId],
-        (err, row) => (err ? rej(err) : res(row))
-      )
-    )
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    const chat = isPostgreSQL
+      ? await db.query(
+          `SELECT * FROM chats WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)`,
+          [chatId, senderId]
+        ).then(result => result.rows[0] || null)
+      : await new Promise((res, rej) =>
+          db.get(
+            `SELECT * FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)`,
+            [chatId, senderId, senderId],
+            (err, row) => (err ? rej(err) : res(row))
+          )
+        )
     if (!chat) {
       throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
@@ -207,13 +216,19 @@ module.exports = {
   },
 
   async getMessages(chatId, userId) {
-    const chat = await new Promise((res, rej) =>
-      db.get(
-        `SELECT * FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)`,
-        [chatId, userId, userId],
-        (err, row) => (err ? rej(err) : res(row))
-      )
-    )
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    const chat = isPostgreSQL
+      ? await db.query(
+          `SELECT * FROM chats WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)`,
+          [chatId, userId]
+        ).then(result => result.rows[0] || null)
+      : await new Promise((res, rej) =>
+          db.get(
+            `SELECT * FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)`,
+            [chatId, userId, userId],
+            (err, row) => (err ? rej(err) : res(row))
+          )
+        )
     if (!chat) {
       throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
@@ -222,13 +237,19 @@ module.exports = {
   },
 
   async markMessagesAsRead(chatId, userId) {
-    const chat = await new Promise((res, rej) =>
-      db.get(
-        `SELECT * FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)`,
-        [chatId, userId, userId],
-        (err, row) => (err ? rej(err) : res(row))
-      )
-    )
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    const chat = isPostgreSQL
+      ? await db.query(
+          `SELECT * FROM chats WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)`,
+          [chatId, userId]
+        ).then(result => result.rows[0] || null)
+      : await new Promise((res, rej) =>
+          db.get(
+            `SELECT * FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)`,
+            [chatId, userId, userId],
+            (err, row) => (err ? rej(err) : res(row))
+          )
+        )
     if (!chat) {
       throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
@@ -287,11 +308,17 @@ module.exports = {
   },
 
   async deleteMessage(userId, messageId) {
-    const message = await new Promise((res, rej) =>
-      db.get(`SELECT * FROM messages WHERE id=?`, [messageId], (err, row) =>
-        err ? rej(err) : res(row)
-      )
-    )
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    
+    const message = isPostgreSQL
+      ? await db.query(`SELECT * FROM messages WHERE id=$1`, [messageId])
+          .then(result => result.rows[0] || null)
+      : await new Promise((res, rej) =>
+          db.get(`SELECT * FROM messages WHERE id=?`, [messageId], (err, row) =>
+            err ? rej(err) : res(row)
+          )
+        )
+    
     if (!message) {
       throw new AppError(ERRORS.INVALID_INPUT, 404)
     }
@@ -300,27 +327,40 @@ module.exports = {
       throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
 
-    await new Promise((res, rej) =>
-      db.run(`DELETE FROM messages WHERE id=?`, [messageId], function (err) {
-        if (err) rej(err)
-        else res()
-      })
-    )
-
-    const count = await new Promise((res, rej) =>
-      db.get(
-        `SELECT COUNT(*) as cnt FROM messages WHERE chat_id=?`,
-        [message.chat_id],
-        (err, row) => (err ? rej(err) : res(row.cnt))
+    if (isPostgreSQL) {
+      await db.query(`DELETE FROM messages WHERE id=$1`, [messageId])
+    } else {
+      await new Promise((res, rej) =>
+        db.run(`DELETE FROM messages WHERE id=?`, [messageId], function (err) {
+          if (err) rej(err)
+          else res()
+        })
       )
-    )
+    }
+
+    const count = isPostgreSQL
+      ? await db.query(
+          `SELECT COUNT(*) as cnt FROM messages WHERE chat_id=$1`,
+          [message.chat_id]
+        ).then(result => parseInt(result.rows[0].cnt) || 0)
+      : await new Promise((res, rej) =>
+          db.get(
+            `SELECT COUNT(*) as cnt FROM messages WHERE chat_id=?`,
+            [message.chat_id],
+            (err, row) => (err ? rej(err) : res(row.cnt))
+          )
+        )
 
     if (count === 0) {
-      await new Promise((res, rej) =>
-        db.run(`DELETE FROM chats WHERE id=?`, [message.chat_id], (err) =>
-          err ? rej(err) : res()
+      if (isPostgreSQL) {
+        await db.query(`DELETE FROM chats WHERE id=$1`, [message.chat_id])
+      } else {
+        await new Promise((res, rej) =>
+          db.run(`DELETE FROM chats WHERE id=?`, [message.chat_id], (err) =>
+            err ? rej(err) : res()
+          )
         )
-      )
+      }
     }
   },
 
@@ -333,11 +373,17 @@ module.exports = {
       throw new AppError(ERRORS.INVALID_INPUT, 400)
     }
 
-    const message = await new Promise((res, rej) =>
-      db.get(`SELECT * FROM messages WHERE id=?`, [messageId], (err, row) =>
-        err ? rej(err) : res(row)
-      )
-    )
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    
+    const message = isPostgreSQL
+      ? await db.query(`SELECT * FROM messages WHERE id=$1`, [messageId])
+          .then(result => result.rows[0] || null)
+      : await new Promise((res, rej) =>
+          db.get(`SELECT * FROM messages WHERE id=?`, [messageId], (err, row) =>
+            err ? rej(err) : res(row)
+          )
+        )
+    
     if (!message) {
       throw new AppError(ERRORS.INVALID_INPUT, 404)
     }
@@ -345,15 +391,22 @@ module.exports = {
       throw new AppError(ERRORS.NO_PERMISSION, 403)
     }
 
-    await new Promise((res, rej) =>
-      db.run(
-        `UPDATE messages SET text=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-        [newText, messageId],
-        function (err) {
-          if (err) rej(err)
-          else res()
-        }
+    if (isPostgreSQL) {
+      await db.query(
+        `UPDATE messages SET text=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2`,
+        [newText, messageId]
       )
-    )
+    } else {
+      await new Promise((res, rej) =>
+        db.run(
+          `UPDATE messages SET text=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+          [newText, messageId],
+          function (err) {
+            if (err) rej(err)
+            else res()
+          }
+        )
+      )
+    }
   },
 }

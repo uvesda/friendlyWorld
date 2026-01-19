@@ -50,33 +50,55 @@ module.exports = {
   updateProfile(id, { name, email, password }) {
     return new Promise(async (resolve, reject) => {
       try {
+        const isPostgreSQL = !!process.env.DATABASE_URL
         const fields = []
         const params = []
+        let paramIndex = 1
 
         if (name) {
-          fields.push('name=?')
+          if (isPostgreSQL) {
+            fields.push(`name=$${paramIndex++}`)
+          } else {
+            fields.push('name=?')
+          }
           params.push(name)
         }
         if (email) {
-          fields.push('email=?')
+          if (isPostgreSQL) {
+            fields.push(`email=$${paramIndex++}`)
+          } else {
+            fields.push('email=?')
+          }
           params.push(email)
         }
         if (password) {
           const hash = await bcrypt.hash(password, 10)
-          fields.push('password=?')
+          if (isPostgreSQL) {
+            fields.push(`password=$${paramIndex++}`)
+          } else {
+            fields.push('password=?')
+          }
           params.push(hash)
         }
         if (fields.length === 0) return resolve(await this.findById(id))
 
-        params.push(id)
-        db.run(
-          `UPDATE users SET ${fields.join(', ')} WHERE id=?`,
-          params,
-          function (err) {
-            if (err) reject(err)
-            else resolve({ changes: this.changes })
-          }
-        )
+        if (isPostgreSQL) {
+          params.push(id)
+          const query = `UPDATE users SET ${fields.join(', ')} WHERE id=$${paramIndex}`
+          db.query(query, params)
+            .then((result) => resolve({ changes: result.rowCount }))
+            .catch(reject)
+        } else {
+          params.push(id)
+          db.run(
+            `UPDATE users SET ${fields.join(', ')} WHERE id=?`,
+            params,
+            function (err) {
+              if (err) reject(err)
+              else resolve({ changes: this.changes })
+            }
+          )
+        }
       } catch (e) {
         reject(e)
       }
@@ -85,27 +107,49 @@ module.exports = {
 
   updateAvatar(id, path) {
     return new Promise((resolve, reject) => {
-      db.run(
-        `UPDATE users SET avatar=? WHERE id=?`,
-        [path, id],
-        function (err) {
-          if (err) reject(err)
-          else resolve({ changes: this.changes, avatar: path })
-        }
-      )
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      
+      if (isPostgreSQL) {
+        db.query(
+          `UPDATE users SET avatar=$1 WHERE id=$2`,
+          [path, id]
+        )
+          .then((result) => resolve({ changes: result.rowCount, avatar: path }))
+          .catch(reject)
+      } else {
+        db.run(
+          `UPDATE users SET avatar=? WHERE id=?`,
+          [path, id],
+          function (err) {
+            if (err) reject(err)
+            else resolve({ changes: this.changes, avatar: path })
+          }
+        )
+      }
     })
   },
 
   deleteAvatar(id) {
     return new Promise((resolve, reject) => {
-      db.run(
-        `UPDATE users SET avatar=NULL WHERE id=?`,
-        [id],
-        function (err) {
-          if (err) reject(err)
-          else resolve({ changes: this.changes })
-        }
-      )
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      
+      if (isPostgreSQL) {
+        db.query(
+          `UPDATE users SET avatar=NULL WHERE id=$1`,
+          [id]
+        )
+          .then((result) => resolve({ changes: result.rowCount }))
+          .catch(reject)
+      } else {
+        db.run(
+          `UPDATE users SET avatar=NULL WHERE id=?`,
+          [id],
+          function (err) {
+            if (err) reject(err)
+            else resolve({ changes: this.changes })
+          }
+        )
+      }
     })
   },
 
@@ -129,15 +173,26 @@ module.exports = {
   changePassword(id, newPassword) {
     return new Promise(async (resolve, reject) => {
       try {
+        const isPostgreSQL = !!process.env.DATABASE_URL
         const hash = await bcrypt.hash(newPassword, 10)
-        db.run(
-          `UPDATE users SET password=? WHERE id=?`,
-          [hash, id],
-          function (err) {
-            if (err) reject(err)
-            else resolve({ changes: this.changes })
-          }
-        )
+        
+        if (isPostgreSQL) {
+          db.query(
+            `UPDATE users SET password=$1 WHERE id=$2`,
+            [hash, id]
+          )
+            .then((result) => resolve({ changes: result.rowCount }))
+            .catch(reject)
+        } else {
+          db.run(
+            `UPDATE users SET password=? WHERE id=?`,
+            [hash, id],
+            function (err) {
+              if (err) reject(err)
+              else resolve({ changes: this.changes })
+            }
+          )
+        }
       } catch (e) {
         reject(e)
       }
