@@ -18,18 +18,55 @@ if (!databaseUrl) {
   module.exports = db
 } else {
   // PostgreSQL для продакшена
-  const pool = new Pool({
-    connectionString: databaseUrl,
-    ssl: databaseUrl.includes('supabase') ? { rejectUnauthorized: false } : false,
-  })
+  let poolConfig
+  
+  try {
+    // Парсим connection string для добавления опций
+    const url = new URL(databaseUrl)
+    
+    poolConfig = {
+      host: url.hostname,
+      port: parseInt(url.port) || 5432,
+      database: url.pathname.slice(1) || 'postgres',
+      user: url.username || 'postgres',
+      password: url.password,
+      ssl: databaseUrl.includes('supabase') ? { rejectUnauthorized: false } : false,
+      // Принудительно используем IPv4 (важно для Render.com)
+      family: 4, // 4 = IPv4, 6 = IPv6, 0 = автоматически
+    }
+    
+    console.log(`🔌 Подключение к PostgreSQL: ${poolConfig.host}:${poolConfig.port}/${poolConfig.database}`)
+  } catch (err) {
+    // Если парсинг не удался, используем connectionString напрямую
+    console.warn('⚠️ Не удалось распарсить DATABASE_URL, используем напрямую')
+    poolConfig = {
+      connectionString: databaseUrl,
+      ssl: databaseUrl.includes('supabase') ? { rejectUnauthorized: false } : false,
+    }
+  }
 
-  pool.on('connect', () => {
+  const pool = new Pool(poolConfig)
+
+  pool.on('connect', (client) => {
     console.log('✅ PostgreSQL подключена (Supabase)')
+    console.log(`   Host: ${client.host}, Database: ${client.database}`)
   })
 
   pool.on('error', (err) => {
-    console.error('❌ Ошибка подключения к PostgreSQL:', err)
+    console.error('❌ Ошибка подключения к PostgreSQL:', err.message)
+    console.error('   Code:', err.code)
+    if (err.address) console.error('   Address:', err.address)
   })
+
+  // Тестируем подключение при инициализации
+  pool.query('SELECT NOW()')
+    .then(() => {
+      console.log('✅ Тест подключения к PostgreSQL успешен')
+    })
+    .catch((err) => {
+      console.error('❌ Тест подключения к PostgreSQL не удался:', err.message)
+      console.error('   Проверьте DATABASE_URL и доступность базы данных')
+    })
 
   // Создаем обертку для совместимости с SQLite API
   const db = {

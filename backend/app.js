@@ -15,8 +15,11 @@ const errorMiddleware = require('./middlewares/errorMiddleware')
 
 const app = express()
 
-// Инициализация таблиц
-initTables()
+// Инициализация таблиц (асинхронно, не блокирует запуск)
+initTables().catch((err) => {
+  console.error('❌ Ошибка инициализации таблиц (некритично):', err.message)
+  console.error('   Приложение продолжит работу, но таблицы могут быть не созданы')
+})
 
 const migrateChatUsers = require('./config/migrateChatUsers')
 setTimeout(() => {

@@ -3,16 +3,19 @@ const db = require('./db')
 // Определяем, используем ли мы PostgreSQL
 const isPostgreSQL = !!process.env.DATABASE_URL
 
-function initTables() {
-  db.serialize(async () => {
-    if (isPostgreSQL) {
-      // PostgreSQL синтаксис
-      await initPostgreSQLTables()
-    } else {
-      // SQLite синтаксис (для локальной разработки)
-      initSQLiteTables()
-    }
-  })
+async function initTables() {
+  if (isPostgreSQL) {
+    // PostgreSQL синтаксис
+    await initPostgreSQLTables()
+  } else {
+    // SQLite синтаксис (для локальной разработки)
+    return new Promise((resolve) => {
+      db.serialize(() => {
+        initSQLiteTables()
+        resolve()
+      })
+    })
+  }
 }
 
 function initSQLiteTables() {
