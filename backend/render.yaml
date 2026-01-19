@@ -20,4 +20,4 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlld2lucmhicGxzbGNscW9zd2dwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODc2MzgxNSwiZXhwIjoyMDg0MzM5ODE1fQ.Z96kXsDUjOvz5CKizB0eXVEyOfy7Ctnb6QPXvrHSN-Q
       - key: DATABASE_URL
-        value: postgresql://postgres:ksYPernm8lT1tvRf@db.iewinrhbplslclqoswgp.supabase.co:5432/postgres
+        value: postgresql://postgres.iewinrhbplslclqoswgp:ksYPernm8lT1tvRf@aws-1-eu-west-2.pooler.supabase.com:5432/postgres
