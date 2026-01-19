@@ -12,7 +12,6 @@ import {
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
-import DateTimePicker from '@react-native-community/datetimepicker'
 import MapView, { Marker } from 'react-native-maps'
 import BottomSheetModal, {
   BottomSheetScrollView,
@@ -25,6 +24,7 @@ import { AppText } from '@components/AppText/AppText'
 import { ButtonPrimary } from '@components/ButtonPrimary/ButtonPrimary'
 import { postApi } from '@entities/postApi/postApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
+import CustomDatePicker from '@components/CustomDatePicker/CustomDatePicker'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 
@@ -35,7 +35,6 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
   const [deletedPhotoIds, setDeletedPhotoIds] = useState([])
   const [uploading, setUploading] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [showTimePicker, setShowTimePicker] = useState(false)
   const [loading, setLoading] = useState(false)
   const [mapRegion, setMapRegion] = useState({
     latitude: 55.7558,
@@ -71,6 +70,7 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
   const status = watch('status')
   const latitude = watch('latitude')
   const longitude = watch('longitude')
+  const eventDate = watch('event_date')
 
   const getCoordinate = (formValue, postValue) => {
     if (formValue && formValue.toString().trim() !== '') {
@@ -178,7 +178,6 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
     setDeletedPhotoIds([])
     setExistingPhotos(originalPhotos) // Восстанавливаем исходные фотографии
     setShowDatePicker(false)
-    setShowTimePicker(false)
     onClose?.()
   }, [onClose, originalPhotos])
 
@@ -519,97 +518,22 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
               <>
                 <TouchableOpacity
                   style={styles.dateButton}
-                  onPress={() => {
-                    if (Platform.OS === 'android') {
-                      setShowDatePicker(true)
-                    } else {
-                      setShowDatePicker(true)
-                    }
-                  }}
+                  onPress={() => setShowDatePicker(true)}
                 >
                   <AppText style={styles.dateButtonText}>
                     {value ? formatDate(value) : 'Выберите дату и время *'}
                   </AppText>
                 </TouchableOpacity>
-                {Platform.OS === 'android' && (
-                  <>
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={value || new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          setShowDatePicker(false)
-                          if (selectedDate) {
-                            const currentDate = value || new Date()
-                            const newDate = new Date(selectedDate)
-                            newDate.setHours(currentDate.getHours())
-                            newDate.setMinutes(currentDate.getMinutes())
-                            onChange(newDate)
-                            setTimeout(() => setShowTimePicker(true), 100)
-                          }
-                        }}
-                      />
-                    )}
-                    {showTimePicker && (
-                      <DateTimePicker
-                        value={value || new Date()}
-                        mode="time"
-                        display="default"
-                        is24Hour={true}
-                        onChange={(event, selectedTime) => {
-                          setShowTimePicker(false)
-                          if (selectedTime) {
-                            const currentDate = value || new Date()
-                            const newDate = new Date(currentDate)
-                            newDate.setHours(selectedTime.getHours())
-                            newDate.setMinutes(selectedTime.getMinutes())
-                            onChange(newDate)
-                          }
-                        }}
-                      />
-                    )}
-                  </>
-                )}
-                {Platform.OS === 'ios' && showDatePicker && (
-                  <View style={styles.iosPickerContainer}>
-                    <View style={styles.iosPickerButtons}>
-                      <TouchableOpacity
-                        style={styles.iosPickerButton}
-                        onPress={() => setShowDatePicker(false)}
-                      >
-                        <AppText style={styles.iosPickerButtonText}>
-                          Отмена
-                        </AppText>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.iosPickerButton}
-                        onPress={() => setShowDatePicker(false)}
-                      >
-                        <AppText
-                          style={[
-                            styles.iosPickerButtonText,
-                            styles.iosPickerButtonTextConfirm,
-                          ]}
-                        >
-                          Готово
-                        </AppText>
-                      </TouchableOpacity>
-                    </View>
-                    <DateTimePicker
-                      value={value || new Date()}
-                      mode="datetime"
-                      display="spinner"
-                      is24Hour={true}
-                      onChange={(event, selectedDate) => {
-                        if (event.type !== 'dismissed' && selectedDate) {
-                          onChange(selectedDate)
-                        }
-                      }}
-                      style={styles.iosPicker}
-                    />
-                  </View>
-                )}
+                <CustomDatePicker
+                  visible={showDatePicker}
+                  value={value || new Date()}
+                  onConfirm={(selectedDate) => {
+                    onChange(selectedDate)
+                    setShowDatePicker(false)
+                  }}
+                  onCancel={() => setShowDatePicker(false)}
+                  useModal={true}
+                />
               </>
             )}
           />

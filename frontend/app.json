@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/petto-expo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/petto-expo.png",
       "resizeMode": "contain",
@@ -44,7 +44,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "newArchEnabled": true
+            "newArchEnabled": false
           },
           "android": {
             "compileSdkVersion": 35,
@@ -53,7 +53,6 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker",
       [
         "expo-image-picker",
         {

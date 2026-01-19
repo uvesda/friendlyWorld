@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   View,
   StyleSheet,
@@ -8,10 +8,10 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
-import DateTimePicker from '@react-native-community/datetimepicker'
 import MapView, { Marker } from 'react-native-maps'
 import { backgrounds, colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
@@ -21,12 +21,14 @@ import AppLayout from '@components/Layout/AppLayout'
 import Header from '@components/Layout/Header'
 import { postApi } from '@entities/postApi/postApi'
 import { getServerErrorMessage } from '@utils/getServerErrorMessage'
+import CustomDatePicker from '@components/CustomDatePicker/CustomDatePicker'
 
 const CreatePostScreen = ({ navigation }) => {
   const [selectedImages, setSelectedImages] = useState([])
   const [uploading, setUploading] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [showTimePicker, setShowTimePicker] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
+  const [mapError, setMapError] = useState(false)
   const [mapRegion, setMapRegion] = useState({
     latitude: 55.7558, // Москва по умолчанию
     longitude: 37.6173,
@@ -56,6 +58,21 @@ const CreatePostScreen = ({ navigation }) => {
   const status = watch('status')
   const latitude = watch('latitude')
   const longitude = watch('longitude')
+
+  // Инициализация компонента с обработкой ошибок
+  useEffect(() => {
+    // Проверка доступности нативных модулей
+    try {
+      // Проверяем, что MapView доступен
+      if (typeof MapView === 'undefined') {
+        console.warn('MapView is not available')
+        setMapError(true)
+      }
+    } catch (error) {
+      console.error('Error initializing CreatePostScreen:', error)
+      setMapError(true)
+    }
+  }, [])
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -286,102 +303,15 @@ const CreatePostScreen = ({ navigation }) => {
               control={control}
               name="event_date"
               rules={{ required: 'Дата события обязательна' }}
-              render={({ field: { onChange, value } }) => (
-                <>
-                  <TouchableOpacity
-                    style={styles.dateButton}
-                    onPress={() => {
-                      if (Platform.OS === 'android') {
-                        setShowDatePicker(true)
-                      } else {
-                        setShowDatePicker(true)
-                      }
-                    }}
-                  >
-                    <AppText style={styles.dateButtonText}>
-                      {value ? formatDate(value) : 'Выберите дату и время *'}
-                    </AppText>
-                  </TouchableOpacity>
-                  {Platform.OS === 'android' && (
-                    <>
-                      {showDatePicker && (
-                        <DateTimePicker
-                          value={value || new Date()}
-                          mode="date"
-                          display="default"
-                          onChange={(event, selectedDate) => {
-                            setShowDatePicker(false)
-                            if (selectedDate) {
-                              const currentDate = value || new Date()
-                              const newDate = new Date(selectedDate)
-                              newDate.setHours(currentDate.getHours())
-                              newDate.setMinutes(currentDate.getMinutes())
-                              onChange(newDate)
-                              setTimeout(() => setShowTimePicker(true), 100)
-                            }
-                          }}
-                        />
-                      )}
-                      {showTimePicker && (
-                        <DateTimePicker
-                          value={value || new Date()}
-                          mode="time"
-                          display="default"
-                          is24Hour={true}
-                          onChange={(event, selectedTime) => {
-                            setShowTimePicker(false)
-                            if (selectedTime) {
-                              const currentDate = value || new Date()
-                              const newDate = new Date(currentDate)
-                              newDate.setHours(selectedTime.getHours())
-                              newDate.setMinutes(selectedTime.getMinutes())
-                              onChange(newDate)
-                            }
-                          }}
-                        />
-                      )}
-                    </>
-                  )}
-                  {Platform.OS === 'ios' && showDatePicker && (
-                    <View style={styles.iosPickerContainer}>
-                      <View style={styles.iosPickerButtons}>
-                        <TouchableOpacity
-                          style={styles.iosPickerButton}
-                          onPress={() => setShowDatePicker(false)}
-                        >
-                          <AppText style={styles.iosPickerButtonText}>
-                            Отмена
-                          </AppText>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.iosPickerButton}
-                          onPress={() => setShowDatePicker(false)}
-                        >
-                          <AppText
-                            style={[
-                              styles.iosPickerButtonText,
-                              styles.iosPickerButtonTextConfirm,
-                            ]}
-                          >
-                            Готово
-                          </AppText>
-                        </TouchableOpacity>
-                      </View>
-                      <DateTimePicker
-                        value={value || new Date()}
-                        mode="datetime"
-                        display="spinner"
-                        is24Hour={true}
-                        onChange={(event, selectedDate) => {
-                          if (event.type !== 'dismissed' && selectedDate) {
-                            onChange(selectedDate)
-                          }
-                        }}
-                        style={styles.iosPicker}
-                      />
-                    </View>
-                  )}
-                </>
+              render={({ field: { value } }) => (
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <AppText style={styles.dateButtonText}>
+                    {value ? formatDate(value) : 'Выберите дату и время *'}
+                  </AppText>
+                </TouchableOpacity>
               )}
             />
             {errors.event_date && (
@@ -434,64 +364,120 @@ const CreatePostScreen = ({ navigation }) => {
               render={() => (
                 <>
                   <View style={styles.mapContainer}>
-                    <MapView
-                      style={styles.map}
-                      region={mapRegion}
-                      onRegionChangeComplete={setMapRegion}
-                      onPress={(e) => {
-                        const { latitude, longitude } = e.nativeEvent.coordinate
-                        setValue('latitude', latitude.toString(), {
-                          shouldValidate: true,
-                        })
-                        setValue('longitude', longitude.toString(), {
-                          shouldValidate: true,
-                        })
-                        setMapRegion({
-                          ...mapRegion,
-                          latitude,
-                          longitude,
-                        })
-                      }}
-                      showsUserLocation={true}
-                      showsMyLocationButton={true}
-                    >
-                      {latitude && longitude && (
-                        <Marker
-                          coordinate={{
-                            latitude: parseFloat(latitude),
-                            longitude: parseFloat(longitude),
-                          }}
-                          anchor={{ x: 0.5, y: 0.5 }}
-                          centerOffset={{ x: 0, y: -5 }}
-                        >
-                          <View
-                            style={[
-                              styles.customMarker,
-                              {
-                                borderColor:
-                                  status === 'lost'
-                                    ? colors.lowOrange
-                                    : colors.green,
-                              },
-                            ]}
-                          >
-                            <View
-                              style={[
-                                styles.markerPlaceholder,
-                                {
-                                  backgroundColor:
-                                    status === 'lost'
-                                      ? colors.lowOrange
-                                      : colors.green,
-                                },
-                              ]}
-                            >
-                              <View style={styles.markerInnerCircle} />
-                            </View>
+                    {mapError ? (
+                      <View style={styles.mapErrorContainer}>
+                        <AppText style={styles.mapErrorText}>
+                          Карта временно недоступна. Вы можете указать координаты вручную.
+                        </AppText>
+                        <View style={styles.manualCoordinatesContainer}>
+                          <TextInputField
+                            placeholder="Широта (например: 55.7558)"
+                            value={latitude}
+                            onChangeText={(text) => {
+                              setValue('latitude', text, { shouldValidate: true })
+                            }}
+                            keyboardType="numeric"
+                            style={styles.coordinateInput}
+                          />
+                          <TextInputField
+                            placeholder="Долгота (например: 37.6173)"
+                            value={longitude}
+                            onChangeText={(text) => {
+                              setValue('longitude', text, { shouldValidate: true })
+                            }}
+                            keyboardType="numeric"
+                            style={styles.coordinateInput}
+                          />
+                        </View>
+                      </View>
+                    ) : (
+                      <>
+                        {!mapReady && (
+                          <View style={styles.mapLoadingContainer}>
+                            <ActivityIndicator size="large" color={colors.green} />
                           </View>
-                        </Marker>
-                      )}
-                    </MapView>
+                        )}
+                        <MapView
+                          style={styles.map}
+                          region={mapRegion}
+                          onRegionChangeComplete={(region) => {
+                            setMapRegion(region)
+                            if (!mapReady) {
+                              setMapReady(true)
+                            }
+                          }}
+                          onMapReady={() => {
+                            setMapReady(true)
+                            setMapError(false)
+                          }}
+                          onError={(error) => {
+                            console.error('MapView error:', error)
+                            setMapError(true)
+                            setMapReady(false)
+                          }}
+                          onPress={(e) => {
+                            try {
+                              const { latitude, longitude } = e.nativeEvent.coordinate
+                              if (latitude && longitude && !isNaN(latitude) && !isNaN(longitude)) {
+                                setValue('latitude', latitude.toString(), {
+                                  shouldValidate: true,
+                                })
+                                setValue('longitude', longitude.toString(), {
+                                  shouldValidate: true,
+                                })
+                                setMapRegion({
+                                  ...mapRegion,
+                                  latitude,
+                                  longitude,
+                                })
+                              }
+                            } catch (err) {
+                              console.error('MapView onPress error:', err)
+                            }
+                          }}
+                          showsUserLocation={false}
+                          showsMyLocationButton={false}
+                          loadingEnabled={true}
+                        >
+                          {latitude && longitude && !isNaN(parseFloat(latitude)) && !isNaN(parseFloat(longitude)) && (
+                            <Marker
+                              coordinate={{
+                                latitude: parseFloat(latitude),
+                                longitude: parseFloat(longitude),
+                              }}
+                              anchor={{ x: 0.5, y: 0.5 }}
+                              centerOffset={{ x: 0, y: -5 }}
+                            >
+                              <View
+                                style={[
+                                  styles.customMarker,
+                                  {
+                                    borderColor:
+                                      status === 'lost'
+                                        ? colors.lowOrange
+                                        : colors.green,
+                                  },
+                                ]}
+                              >
+                                <View
+                                  style={[
+                                    styles.markerPlaceholder,
+                                    {
+                                      backgroundColor:
+                                        status === 'lost'
+                                          ? colors.lowOrange
+                                          : colors.green,
+                                    },
+                                  ]}
+                                >
+                                  <View style={styles.markerInnerCircle} />
+                                </View>
+                              </View>
+                            </Marker>
+                          )}
+                        </MapView>
+                      </>
+                    )}
                   </View>
                   {errors.latitude && (
                     <AppText style={styles.errorText}>
@@ -573,6 +559,23 @@ const CreatePostScreen = ({ navigation }) => {
             style={styles.submitButton}
           />
         </ScrollView>
+        
+        {/* DatePicker внизу экрана */}
+        <Controller
+          control={control}
+          name="event_date"
+          render={({ field: { onChange, value } }) => (
+            <CustomDatePicker
+              visible={showDatePicker}
+              value={value || new Date()}
+              onConfirm={(selectedDate) => {
+                onChange(selectedDate)
+                setShowDatePicker(false)
+              }}
+              onCancel={() => setShowDatePicker(false)}
+            />
+          )}
+        />
       </KeyboardAvoidingView>
     </AppLayout>
   )
@@ -696,6 +699,38 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  mapLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    zIndex: 1,
+  },
+  mapErrorContainer: {
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.white,
+  },
+  mapErrorText: {
+    color: colors.orange,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+    fontFamily: 'Cruinn-Regular',
+  },
+  manualCoordinatesContainer: {
+    width: '100%',
+    gap: 12,
+  },
+  coordinateInput: {
+    width: '100%',
   },
   customMarker: {
     width: 40,
