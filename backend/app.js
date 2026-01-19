@@ -15,18 +15,23 @@ const errorMiddleware = require('./middlewares/errorMiddleware')
 
 const app = express()
 
-// Инициализация таблиц (асинхронно, не блокирует запуск)
-initTables().catch((err) => {
-  console.error('❌ Ошибка инициализации таблиц (некритично):', err.message)
-  console.error('   Приложение продолжит работу, но таблицы могут быть не созданы')
-})
-
+// Инициализация таблиц и миграций
 const migrateChatUsers = require('./config/migrateChatUsers')
-setTimeout(() => {
-  migrateChatUsers().catch((err) => {
-    console.error('Migration error (non-critical):', err.message)
+
+// Сначала создаем таблицы, затем запускаем миграции
+initTables()
+  .then(() => {
+    console.log('✅ Таблицы созданы, запускаем миграции...')
+    // Запускаем миграцию после создания таблиц
+    return migrateChatUsers()
   })
-}, 1000)
+  .then(() => {
+    console.log('✅ Миграции завершены')
+  })
+  .catch((err) => {
+    console.error('❌ Ошибка инициализации таблиц или миграций:', err.message)
+    console.error('   Приложение продолжит работу, но некоторые функции могут не работать')
+  })
 
 // Middleware
 app.use(cors({
