@@ -18,6 +18,7 @@ import BottomSheetModal, {
   BottomSheetScrollView,
   BottomSheetBackdrop,
   BottomSheetTextInput,
+  BottomSheetFlatList,
 } from '@gorhom/bottom-sheet'
 import { colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
@@ -86,12 +87,12 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
   const markerLatitude = getCoordinate(latitude, post?.latitude)
   const markerLongitude = getCoordinate(longitude, post?.longitude)
 
-  const getPhotoUri = (photoPath) => {
+  const getPhotoUri = useCallback((photoPath) => {
     if (!photoPath) return null
     const baseURL = process.env.EXPO_PUBLIC_IP_CONFIG || 'http://localhost:3000'
     if (photoPath.startsWith('http')) return photoPath
     return `${baseURL}${photoPath}`
-  }
+  }, [])
 
   const loadPostData = useCallback(async () => {
     if (!post?.id) return
@@ -329,10 +330,90 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
     }
   }
 
-  if (!post) return null
-
   const totalPhotos = existingPhotos.length + selectedImages.length
-  const remainingPhotosCount = existingPhotos.length + selectedImages.length
+
+  // Подготовка данных для FlatList
+  const photosListData = useMemo(() => {
+    const items = []
+    
+    // Существующие фотографии
+    existingPhotos.forEach((photo) => {
+      items.push({
+        id: `existing-${photo.id}`,
+        type: 'existing',
+        photo: photo,
+      })
+    })
+    
+    // Новые фотографии
+    selectedImages.forEach((image, index) => {
+      items.push({
+        id: `new-${index}`,
+        type: 'new',
+        image: image,
+        index: index,
+      })
+    })
+    
+    // Кнопка добавления
+    if (totalPhotos < 5) {
+      items.push({
+        id: 'add-button',
+        type: 'add',
+      })
+    }
+    
+    return items
+  }, [existingPhotos, selectedImages, totalPhotos])
+
+  const renderPhotoItem = useCallback(({ item }) => {
+    if (item.type === 'existing') {
+      return (
+        <View style={styles.photoItem}>
+          <Image
+            source={{ uri: getPhotoUri(item.photo.path) }}
+            style={styles.photo}
+          />
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => removeExistingPhoto(item.photo.id)}
+          >
+            <AppText style={styles.removeButtonText}>✕</AppText>
+          </TouchableOpacity>
+        </View>
+      )
+    }
+    
+    if (item.type === 'new') {
+      return (
+        <View style={styles.photoItem}>
+          <Image source={{ uri: item.image.uri }} style={styles.photo} />
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => removeImage(item.index)}
+          >
+            <AppText style={styles.removeButtonText}>✕</AppText>
+          </TouchableOpacity>
+        </View>
+      )
+    }
+    
+    if (item.type === 'add') {
+      return (
+        <TouchableOpacity
+          style={styles.addPhotoButton}
+          onPress={pickImage}
+        >
+          <AppText style={styles.addPhotoButtonText}>+</AppText>
+          <AppText style={styles.addPhotoButtonLabel}>Добавить</AppText>
+        </TouchableOpacity>
+      )
+    }
+    
+    return null
+  }, [getPhotoUri, removeExistingPhoto, removeImage, pickImage])
+
+  if (!post) return null
 
   return (
     <BottomSheetModal
@@ -703,48 +784,15 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
           <AppText style={styles.sectionTitle}>
             Фотографии ({totalPhotos}/5)
           </AppText>
-          <ScrollView
+          <BottomSheetFlatList
+            data={photosListData}
+            renderItem={renderPhotoItem}
+            keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.photosContainer}
-          >
-            {/* Существующие фотографии */}
-            {existingPhotos.map((photo, index) => (
-              <View key={`existing-${photo.id}`} style={styles.photoItem}>
-                <Image
-                  source={{ uri: getPhotoUri(photo.path) }}
-                  style={styles.photo}
-                />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removeExistingPhoto(photo.id)}
-                >
-                  <AppText style={styles.removeButtonText}>✕</AppText>
-                </TouchableOpacity>
-              </View>
-            ))}
-            {/* Новые фотографии */}
-            {selectedImages.map((image, index) => (
-              <View key={`new-${index}`} style={styles.photoItem}>
-                <Image source={{ uri: image.uri }} style={styles.photo} />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removeImage(index)}
-                >
-                  <AppText style={styles.removeButtonText}>✕</AppText>
-                </TouchableOpacity>
-              </View>
-            ))}
-            {totalPhotos < 5 && (
-              <TouchableOpacity
-                style={styles.addPhotoButton}
-                onPress={pickImage}
-              >
-                <AppText style={styles.addPhotoButtonText}>+</AppText>
-                <AppText style={styles.addPhotoButtonLabel}>Добавить</AppText>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
+            contentContainerStyle={styles.photosContainerContent}
+          />
         </View>
 
         {/* Кнопки действий */}
@@ -947,6 +995,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   photosContainer: {
+    flexDirection: 'row',
+  },
+  photosContainerContent: {
     flexDirection: 'row',
   },
   photoItem: {
