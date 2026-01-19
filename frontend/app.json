@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/petto-expo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/petto-expo.png",
       "resizeMode": "contain",
@@ -44,12 +44,13 @@
         "expo-build-properties",
         {
           "ios": {
-            "newArchEnabled": false
+            "newArchEnabled": true
           },
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
+            "buildToolsVersion": "35.0.0",
+            "newArchEnabled": true
           }
         }
       ],
