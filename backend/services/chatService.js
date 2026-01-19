@@ -151,7 +151,6 @@ module.exports = {
     const recipientId = chat.user1_id === senderId ? chat.user2_id : chat.user1_id
 
     // Restore chat for recipient if they deleted it
-    const isPostgreSQL = !!process.env.DATABASE_URL
     if (isPostgreSQL) {
       await db.query(
         `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES ($1, $2, 0) 
