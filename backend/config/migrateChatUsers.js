@@ -47,26 +47,46 @@ function migrateChatUsers() {
 
             chats.forEach((chat) => {
               // Insert chat_users entries for both users if they don't exist
+              const isPostgreSQL = !!process.env.DATABASE_URL
+              
               const insertUser1 = new Promise((res, rej) => {
-                db.run(
-                  `INSERT OR IGNORE INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
-                  [chat.id, chat.user1_id],
-                  function (err) {
-                    if (err) rej(err)
-                    else res()
-                  }
-                )
+                if (isPostgreSQL) {
+                  db.query(
+                    `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES ($1, $2, 0) ON CONFLICT (chat_id, user_id) DO NOTHING`,
+                    [chat.id, chat.user1_id]
+                  )
+                    .then(() => res())
+                    .catch(rej)
+                } else {
+                  db.run(
+                    `INSERT OR IGNORE INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+                    [chat.id, chat.user1_id],
+                    function (err) {
+                      if (err) rej(err)
+                      else res()
+                    }
+                  )
+                }
               })
 
               const insertUser2 = new Promise((res, rej) => {
-                db.run(
-                  `INSERT OR IGNORE INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
-                  [chat.id, chat.user2_id],
-                  function (err) {
-                    if (err) rej(err)
-                    else res()
-                  }
-                )
+                if (isPostgreSQL) {
+                  db.query(
+                    `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES ($1, $2, 0) ON CONFLICT (chat_id, user_id) DO NOTHING`,
+                    [chat.id, chat.user2_id]
+                  )
+                    .then(() => res())
+                    .catch(rej)
+                } else {
+                  db.run(
+                    `INSERT OR IGNORE INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+                    [chat.id, chat.user2_id],
+                    function (err) {
+                      if (err) rej(err)
+                      else res()
+                    }
+                  )
+                }
               })
 
               Promise.all([insertUser1, insertUser2])

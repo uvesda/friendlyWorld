@@ -27,27 +27,32 @@ module.exports = {
     const normalizedHashtag = hashtag.trim().toLowerCase()
 
     return new Promise((resolve, reject) => {
-      db.run(
-        `
-        INSERT INTO posts
-        (author_id, status, description, event_date, address, latitude, longitude, hashtag)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-        [
-          author_id,
-          status,
-          description,
-          event_date,
-          address,
-          latitude,
-          longitude,
-          normalizedHashtag,
-        ],
-        function (err) {
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      const query = isPostgreSQL
+        ? `INSERT INTO posts (author_id, status, description, event_date, address, latitude, longitude, hashtag) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
+        : `INSERT INTO posts (author_id, status, description, event_date, address, latitude, longitude, hashtag) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      
+      const params = [
+        author_id,
+        status,
+        description,
+        event_date,
+        address,
+        latitude,
+        longitude,
+        normalizedHashtag,
+      ]
+
+      if (isPostgreSQL) {
+        db.query(query, params)
+          .then((result) => resolve({ id: result.rows[0].id }))
+          .catch(reject)
+      } else {
+        db.run(query, params, function (err) {
           if (err) reject(err)
           else resolve({ id: this.lastID })
-        }
-      )
+        })
+      }
     })
   },
 

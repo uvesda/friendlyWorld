@@ -7,10 +7,26 @@ module.exports = {
     if (text.length > 1000) throw new Error('Message is too long')
 
     return new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO messages (chat_id, sender_id, text) VALUES (?, ?, ?)`,
-        [chat_id, sender_id, text],
-        function (err) {
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      const query = isPostgreSQL
+        ? `INSERT INTO messages (chat_id, sender_id, text) VALUES ($1, $2, $3) RETURNING id, created_at`
+        : `INSERT INTO messages (chat_id, sender_id, text) VALUES (?, ?, ?)`
+      
+      if (isPostgreSQL) {
+        db.query(query, [chat_id, sender_id, text])
+          .then((result) => {
+            const row = result.rows[0]
+            resolve({
+              id: row.id,
+              chat_id,
+              sender_id,
+              text,
+              created_at: row.created_at,
+            })
+          })
+          .catch(reject)
+      } else {
+        db.run(query, [chat_id, sender_id, text], function (err) {
           if (err) reject(err)
           else
             resolve({
@@ -20,8 +36,8 @@ module.exports = {
               text,
               created_at: new Date(),
             })
-        }
-      )
+        })
+      }
     })
   },
 
@@ -43,23 +59,44 @@ module.exports = {
 
   async markMessagesAsRead(chat_id, user_id) {
     return new Promise((resolve, reject) => {
-      // Mark all unread messages in this chat as read for this user
-      db.run(
-        `INSERT OR IGNORE INTO message_reads (message_id, user_id)
-         SELECT m.id, ?
-         FROM messages m
-         WHERE m.chat_id = ? 
-           AND m.sender_id != ?
-           AND NOT EXISTS (
-             SELECT 1 FROM message_reads mr 
-             WHERE mr.message_id = m.id AND mr.user_id = ?
-           )`,
-        [user_id, chat_id, user_id, user_id],
-        function (err) {
-          if (err) reject(err)
-          else resolve({ count: this.changes })
-        }
-      )
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      
+      if (isPostgreSQL) {
+        // PostgreSQL использует ON CONFLICT DO NOTHING вместо INSERT OR IGNORE
+        db.query(
+          `INSERT INTO message_reads (message_id, user_id)
+           SELECT m.id, $1
+           FROM messages m
+           WHERE m.chat_id = $2 
+             AND m.sender_id != $3
+             AND NOT EXISTS (
+               SELECT 1 FROM message_reads mr 
+               WHERE mr.message_id = m.id AND mr.user_id = $4
+             )
+           ON CONFLICT (message_id, user_id) DO NOTHING`,
+          [user_id, chat_id, user_id, user_id]
+        )
+          .then((result) => resolve({ count: result.rowCount }))
+          .catch(reject)
+      } else {
+        // SQLite использует INSERT OR IGNORE
+        db.run(
+          `INSERT OR IGNORE INTO message_reads (message_id, user_id)
+           SELECT m.id, ?
+           FROM messages m
+           WHERE m.chat_id = ? 
+             AND m.sender_id != ?
+             AND NOT EXISTS (
+               SELECT 1 FROM message_reads mr 
+               WHERE mr.message_id = m.id AND mr.user_id = ?
+             )`,
+          [user_id, chat_id, user_id, user_id],
+          function (err) {
+            if (err) reject(err)
+            else resolve({ count: this.changes })
+          }
+        )
+      }
     })
   },
 }

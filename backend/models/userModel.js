@@ -13,14 +13,24 @@ module.exports = {
 
   create({ email, password, name }) {
     return new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO users (email, password, name) VALUES (?, ?, ?)`,
-        [email, password, name],
-        function (err) {
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      const query = isPostgreSQL
+        ? `INSERT INTO users (email, password, name) VALUES ($1, $2, $3) RETURNING id, email, name`
+        : `INSERT INTO users (email, password, name) VALUES (?, ?, ?)`
+      
+      if (isPostgreSQL) {
+        db.query(query, [email, password, name])
+          .then((result) => {
+            const row = result.rows[0]
+            resolve({ id: row.id, email: row.email, name: row.name })
+          })
+          .catch(reject)
+      } else {
+        db.run(query, [email, password, name], function (err) {
           if (err) reject(err)
           else resolve({ id: this.lastID, email, name })
-        }
-      )
+        })
+      }
     })
   },
 

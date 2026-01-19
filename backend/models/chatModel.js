@@ -3,18 +3,31 @@ const db = require('../config/db')
 module.exports = {
   async createChat(post_id, user1_id, user2_id) {
     return new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO chats (post_id, user1_id, user2_id) VALUES (?, ?, ?)`,
-        [post_id, user1_id, user2_id],
-        function (err) {
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      const query = isPostgreSQL
+        ? `INSERT INTO chats (post_id, user1_id, user2_id) VALUES ($1, $2, $3) RETURNING id`
+        : `INSERT INTO chats (post_id, user1_id, user2_id) VALUES (?, ?, ?)`
+      
+      if (isPostgreSQL) {
+        db.query(query, [post_id, user1_id, user2_id])
+          .then((result) => {
+            resolve({ id: result.rows[0].id, post_id, user1_id, user2_id })
+          })
+          .catch((err) => {
+            if (err.code === '23505' || err.message.includes('UNIQUE'))
+              return reject(new Error('Chat already exists'))
+            return reject(err)
+          })
+      } else {
+        db.run(query, [post_id, user1_id, user2_id], function (err) {
           if (err) {
             if (err.message.includes('UNIQUE'))
               return reject(new Error('Chat already exists'))
             return reject(err)
           }
           resolve({ id: this.lastID, post_id, user1_id, user2_id })
-        }
-      )
+        })
+      }
     })
   },
 

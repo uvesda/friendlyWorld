@@ -5,14 +5,21 @@ module.exports = {
     if (!path || !path.trim()) throw new Error('Photo path cannot be empty')
 
     return new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO post_photos (post_id, path) VALUES (?, ?)`,
-        [post_id, path],
-        function (err) {
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      const query = isPostgreSQL
+        ? `INSERT INTO post_photos (post_id, path) VALUES ($1, $2) RETURNING id`
+        : `INSERT INTO post_photos (post_id, path) VALUES (?, ?)`
+      
+      if (isPostgreSQL) {
+        db.query(query, [post_id, path])
+          .then((result) => resolve({ id: result.rows[0].id }))
+          .catch(reject)
+      } else {
+        db.run(query, [post_id, path], function (err) {
           if (err) reject(err)
           else resolve({ id: this.lastID })
-        }
-      )
+        })
+      }
     })
   },
 

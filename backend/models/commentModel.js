@@ -5,17 +5,21 @@ module.exports = {
     if (!text?.trim()) throw new Error('Comment text cannot be empty')
 
     return new Promise((resolve, reject) => {
-      db.run(
-        `
-        INSERT INTO comments (post_id, author_id, text)
-        VALUES (?, ?, ?)
-        `,
-        [post_id, author_id, text],
-        function (err) {
+      const isPostgreSQL = !!process.env.DATABASE_URL
+      const query = isPostgreSQL
+        ? `INSERT INTO comments (post_id, author_id, text) VALUES ($1, $2, $3) RETURNING id`
+        : `INSERT INTO comments (post_id, author_id, text) VALUES (?, ?, ?)`
+      
+      if (isPostgreSQL) {
+        db.query(query, [post_id, author_id, text])
+          .then((result) => resolve({ id: result.rows[0].id }))
+          .catch(reject)
+      } else {
+        db.run(query, [post_id, author_id, text], function (err) {
           if (err) reject(err)
           else resolve({ id: this.lastID })
-        }
-      )
+        })
+      }
     })
   },
 

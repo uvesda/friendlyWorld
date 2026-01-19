@@ -50,51 +50,68 @@ module.exports = {
 
   async ensureChatUsersEntries(chatId, user1, user2) {
     // Ensure chat_users entries exist for both users and restore if deleted
-    // First, try to update existing records (restore if deleted)
-    await new Promise((res, rej) => {
-      db.run(
-        `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
-        [chatId, user1],
-        function (err) {
-          if (err) {
-            rej(err)
-            return
-          }
-          // If no rows were updated, insert a new record
-          if (this.changes === 0) {
-            db.run(
-              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
-              [chatId, user1],
-              (insertErr) => (insertErr ? rej(insertErr) : res())
-            )
-          } else {
-            res()
-          }
-        }
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    
+    // For PostgreSQL, use ON CONFLICT, for SQLite use the old approach
+    if (isPostgreSQL) {
+      // PostgreSQL: Use INSERT ... ON CONFLICT DO UPDATE
+      await db.query(
+        `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES ($1, $2, 0) 
+         ON CONFLICT (chat_id, user_id) DO UPDATE SET deleted = 0`,
+        [chatId, user1]
       )
-    })
-    await new Promise((res, rej) => {
-      db.run(
-        `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
-        [chatId, user2],
-        function (err) {
-          if (err) {
-            rej(err)
-            return
-          }
-          // If no rows were updated, insert a new record
-          if (this.changes === 0) {
-            db.run(
-              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
-              [chatId, user2],
-              (insertErr) => (insertErr ? rej(insertErr) : res())
-            )
-          } else {
-            res()
-          }
-        }
+      await db.query(
+        `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES ($1, $2, 0) 
+         ON CONFLICT (chat_id, user_id) DO UPDATE SET deleted = 0`,
+        [chatId, user2]
       )
-    })
+    } else {
+      // SQLite: Use UPDATE then INSERT if needed
+      await new Promise((res, rej) => {
+        db.run(
+          `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
+          [chatId, user1],
+          function (err) {
+            if (err) {
+              rej(err)
+              return
+            }
+            // If no rows were updated, insert a new record
+            if (this.changes === 0) {
+              db.run(
+                `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+                [chatId, user1],
+                (insertErr) => (insertErr ? rej(insertErr) : res())
+              )
+            } else {
+              res()
+            }
+          }
+        )
+      })
+      await new Promise((res, rej) => {
+        db.run(
+          `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
+          [chatId, user2],
+          function (err) {
+            if (err) {
+              rej(err)
+              return
+            }
+            // If no rows were updated, insert a new record
+            if (this.changes === 0) {
+              db.run(
+                `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+                [chatId, user2],
+                (insertErr) => (insertErr ? rej(insertErr) : res())
+              )
+            } else {
+              res()
+            }
+          }
+        )
+      })
+    }
   },
 
   async getUserChats(userId) {
@@ -125,52 +142,66 @@ module.exports = {
     const recipientId = chat.user1_id === senderId ? chat.user2_id : chat.user1_id
 
     // Restore chat for recipient if they deleted it
-    await new Promise((res, rej) => {
-      db.run(
-        `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
-        [chatId, recipientId],
-        function (err) {
-          if (err) {
-            rej(err)
-            return
-          }
-          // If no rows were updated, insert a new record
-          if (this.changes === 0) {
-            db.run(
-              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
-              [chatId, recipientId],
-              (insertErr) => (insertErr ? rej(insertErr) : res())
-            )
-          } else {
-            res()
-          }
-        }
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    if (isPostgreSQL) {
+      await db.query(
+        `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES ($1, $2, 0) 
+         ON CONFLICT (chat_id, user_id) DO UPDATE SET deleted = 0`,
+        [chatId, recipientId]
       )
-    })
+      await db.query(
+        `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES ($1, $2, 0) 
+         ON CONFLICT (chat_id, user_id) DO UPDATE SET deleted = 0`,
+        [chatId, senderId]
+      )
+    } else {
+      await new Promise((res, rej) => {
+        db.run(
+          `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
+          [chatId, recipientId],
+          function (err) {
+            if (err) {
+              rej(err)
+              return
+            }
+            // If no rows were updated, insert a new record
+            if (this.changes === 0) {
+              db.run(
+                `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+                [chatId, recipientId],
+                (insertErr) => (insertErr ? rej(insertErr) : res())
+              )
+            } else {
+              res()
+            }
+          }
+        )
+      })
 
-    // Also restore chat for sender if they deleted it
-    await new Promise((res, rej) => {
-      db.run(
-        `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
-        [chatId, senderId],
-        function (err) {
-          if (err) {
-            rej(err)
-            return
+      // Also restore chat for sender if they deleted it
+      await new Promise((res, rej) => {
+        db.run(
+          `UPDATE chat_users SET deleted=0 WHERE chat_id=? AND user_id=?`,
+          [chatId, senderId],
+          function (err) {
+            if (err) {
+              rej(err)
+              return
+            }
+            // If no rows were updated, insert a new record
+            if (this.changes === 0) {
+              db.run(
+                `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
+                [chatId, senderId],
+                (insertErr) => (insertErr ? rej(insertErr) : res())
+              )
+            } else {
+              res()
+            }
           }
-          // If no rows were updated, insert a new record
-          if (this.changes === 0) {
-            db.run(
-              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 0)`,
-              [chatId, senderId],
-              (insertErr) => (insertErr ? rej(insertErr) : res())
-            )
-          } else {
-            res()
-          }
-        }
-      )
-    })
+        )
+      })
+    }
 
     return await MessageModel.sendMessage(chatId, senderId, text)
   },
@@ -207,40 +238,52 @@ module.exports = {
 
   async deleteChatForUser(userId, chatId) {
     // Ensure chat_users entry exists, then mark as deleted
-    await new Promise((res, rej) => {
-      // First try to update existing record
-      db.run(
-        `UPDATE chat_users SET deleted=1 WHERE chat_id=? AND user_id=?`,
-        [chatId, userId],
-        function (err) {
-          if (err) {
-            rej(err)
-            return
-          }
-          // If no rows were updated, insert a new record with deleted=1
-          if (this.changes === 0) {
-            db.run(
-              `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 1)`,
-              [chatId, userId],
-              function (insertErr) {
-                if (insertErr) {
-                  // If insert fails (e.g., constraint violation), try update again
-                  db.run(
-                    `UPDATE chat_users SET deleted=1 WHERE chat_id=? AND user_id=?`,
-                    [chatId, userId],
-                    (updateErr) => (updateErr ? rej(updateErr) : res())
-                  )
-                } else {
-                  res()
-                }
-              }
-            )
-          } else {
-            res()
-          }
-        }
+    const isPostgreSQL = !!process.env.DATABASE_URL
+    
+    if (isPostgreSQL) {
+      // PostgreSQL: Use INSERT ... ON CONFLICT DO UPDATE
+      await db.query(
+        `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES ($1, $2, 1) 
+         ON CONFLICT (chat_id, user_id) DO UPDATE SET deleted = 1`,
+        [chatId, userId]
       )
-    })
+    } else {
+      // SQLite: Use UPDATE then INSERT if needed
+      await new Promise((res, rej) => {
+        // First try to update existing record
+        db.run(
+          `UPDATE chat_users SET deleted=1 WHERE chat_id=? AND user_id=?`,
+          [chatId, userId],
+          function (err) {
+            if (err) {
+              rej(err)
+              return
+            }
+            // If no rows were updated, insert a new record with deleted=1
+            if (this.changes === 0) {
+              db.run(
+                `INSERT INTO chat_users (chat_id, user_id, deleted) VALUES (?, ?, 1)`,
+                [chatId, userId],
+                function (insertErr) {
+                  if (insertErr) {
+                    // If insert fails (e.g., constraint violation), try update again
+                    db.run(
+                      `UPDATE chat_users SET deleted=1 WHERE chat_id=? AND user_id=?`,
+                      [chatId, userId],
+                      (updateErr) => (updateErr ? rej(updateErr) : res())
+                    )
+                  } else {
+                    res()
+                  }
+                }
+              )
+            } else {
+              res()
+            }
+          }
+        )
+      })
+    }
   },
 
   async deleteMessage(userId, messageId) {
