@@ -20,9 +20,15 @@ const logRequest = (req, res, next) => {
   next()
 }
 
-// Middleware для обработки ошибок multer
+// Middleware для обработки ошибок multer (резервный, если ошибка не обработана в upload middleware)
 const handleMulterError = (err, req, res, next) => {
-  console.error('=== MULTER ERROR ===')
+  // Если ошибка уже обработана (AppError), передаем дальше
+  const AppError = require('../utils/AppError')
+  if (err instanceof AppError) {
+    return next(err)
+  }
+  
+  console.error('=== MULTER ERROR (ROUTE HANDLER) ===')
   console.error('Error:', err)
   console.error('Error type:', err.constructor.name)
   console.error('Error message:', err.message)
@@ -31,19 +37,19 @@ const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     console.error('Multer error code:', err.code)
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'FILE_TOO_LARGE', message: 'File too large' })
+      return res.status(400).json({ success: false, error: 'FILE_TOO_LARGE', message: 'File too large' })
     }
     if (err.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ error: 'TOO_MANY_FILES', message: 'Too many files' })
+      return res.status(400).json({ success: false, error: 'TOO_MANY_FILES', message: 'Too many files' })
     }
     if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-      return res.status(400).json({ error: 'UNEXPECTED_FILE', message: 'Unexpected file field' })
+      return res.status(400).json({ success: false, error: 'UNEXPECTED_FILE', message: 'Unexpected file field' })
     }
-    return res.status(400).json({ error: 'UPLOAD_ERROR', message: err.message })
+    return res.status(400).json({ success: false, error: 'UPLOAD_ERROR', message: err.message })
   }
   if (err) {
     console.error('Upload error:', err)
-    return res.status(400).json({ error: 'UPLOAD_ERROR', message: err.message })
+    return res.status(400).json({ success: false, error: 'UPLOAD_ERROR', message: err.message })
   }
   next()
 }

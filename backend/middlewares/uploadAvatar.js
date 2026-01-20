@@ -2,6 +2,7 @@ const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
 const supabase = require('../config/supabase')
+const AppError = require('../utils/AppError')
 
 // Проверяем, настроен ли Supabase
 // Используем SERVICE_ROLE_KEY или ANON_KEY
@@ -71,13 +72,17 @@ upload.single = function() {
         console.error('Multer error (avatar):', err)
         if (err instanceof multer.MulterError) {
           if (err.code === 'LIMIT_FILE_SIZE') {
-            return next(new Error('FILE_TOO_LARGE'))
+            return next(new AppError('FILE_TOO_LARGE', 400))
           }
           if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-            return next(new Error('UNEXPECTED_FILE'))
+            return next(new AppError('UNEXPECTED_FILE', 400))
           }
         }
-        return next(err)
+        // Если это ошибка из fileFilter
+        if (err.message === 'Only images allowed') {
+          return next(new AppError('FILE_REQUIRED', 400, 'Only images allowed'))
+        }
+        return next(new AppError('UPLOAD_ERROR', 400, err.message))
       }
       next()
     })

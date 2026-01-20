@@ -18,9 +18,15 @@ const logRequest = (req, res, next) => {
   next()
 }
 
-// Middleware для обработки ошибок multer
+// Middleware для обработки ошибок multer (резервный, если ошибка не обработана в upload middleware)
 const handleMulterError = (err, req, res, next) => {
-  console.error('=== MULTER ERROR (AVATAR) ===')
+  // Если ошибка уже обработана (AppError), передаем дальше
+  const AppError = require('../utils/AppError')
+  if (err instanceof AppError) {
+    return next(err)
+  }
+  
+  console.error('=== MULTER ERROR (AVATAR ROUTE HANDLER) ===')
   console.error('Error:', err)
   console.error('Error type:', err.constructor.name)
   console.error('Error message:', err.message)

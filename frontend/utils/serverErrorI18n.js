@@ -27,6 +27,10 @@ export const serverErrorMap = {
   FILE_REQUIRED: 'Файл обязателен',
   NO_FILE_UPLOADED: 'Файл не загружен',
   FILE_UPLOAD_FAILED: 'Ошибка загрузки файла',
+  FILE_TOO_LARGE: 'Файл слишком большой',
+  TOO_MANY_FILES: 'Слишком много файлов',
+  UNEXPECTED_FILE: 'Неожиданный файл',
+  UPLOAD_ERROR: 'Ошибка загрузки',
 
   // USERS
   USER_NOT_FOUND: 'Пользователь не найден',

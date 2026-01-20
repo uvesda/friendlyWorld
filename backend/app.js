@@ -58,6 +58,18 @@ app.use((req, res, next) => {
 
 app.use(express.json())
 // Не используем express.urlencoded для multipart/form-data - multer обработает сам
+
+// Логирование всех запросов ДО других middleware
+app.use((req, res, next) => {
+  console.log(`\n🔵 [${new Date().toISOString()}] ${req.method} ${req.url}`)
+  console.log('Headers:', {
+    'content-type': req.headers['content-type'],
+    'content-length': req.headers['content-length'],
+    'authorization': req.headers['authorization'] ? 'Bearer ***' : 'missing',
+  })
+  next()
+})
+
 app.use(logger)
 
 // Подключение маршрутов

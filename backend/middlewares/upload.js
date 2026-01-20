@@ -63,6 +63,8 @@ const upload = multer({
   },
 })
 
+const AppError = require('../utils/AppError')
+
 // Добавляем обработчик ошибок multer для any()
 upload.any = function() {
   return function(req, res, next) {
@@ -79,13 +81,17 @@ upload.any = function() {
         console.error('Multer error (any):', err)
         if (err instanceof multer.MulterError) {
           if (err.code === 'LIMIT_FILE_SIZE') {
-            return next(new Error('FILE_TOO_LARGE'))
+            return next(new AppError('FILE_TOO_LARGE', 400))
           }
           if (err.code === 'LIMIT_FILE_COUNT') {
-            return next(new Error('TOO_MANY_FILES'))
+            return next(new AppError('TOO_MANY_FILES', 400))
           }
         }
-        return next(err)
+        // Если это ошибка из fileFilter
+        if (err.message === 'Only images allowed') {
+          return next(new AppError('FILE_REQUIRED', 400, 'Only images allowed'))
+        }
+        return next(new AppError('UPLOAD_ERROR', 400, err.message))
       }
       next()
     })
@@ -108,13 +114,17 @@ upload.single = function() {
         console.error('Multer error (single):', err)
         if (err instanceof multer.MulterError) {
           if (err.code === 'LIMIT_FILE_SIZE') {
-            return next(new Error('FILE_TOO_LARGE'))
+            return next(new AppError('FILE_TOO_LARGE', 400))
           }
           if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-            return next(new Error('UNEXPECTED_FILE'))
+            return next(new AppError('UNEXPECTED_FILE', 400))
           }
         }
-        return next(err)
+        // Если это ошибка из fileFilter
+        if (err.message === 'Only images allowed') {
+          return next(new AppError('FILE_REQUIRED', 400, 'Only images allowed'))
+        }
+        return next(new AppError('UPLOAD_ERROR', 400, err.message))
       }
       next()
     })
