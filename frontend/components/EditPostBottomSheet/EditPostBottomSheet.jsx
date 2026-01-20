@@ -12,7 +12,6 @@ import {
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
-import MapView, { Marker } from 'react-native-maps'
 import BottomSheetModal, {
   BottomSheetScrollView,
   BottomSheetBackdrop,
@@ -36,12 +35,6 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
   const [uploading, setUploading] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 55.7558,
-    longitude: 37.6173,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  })
 
   const bottomSheetModalRef = useRef(null)
 
@@ -68,24 +61,7 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
   })
 
   const status = watch('status')
-  const latitude = watch('latitude')
-  const longitude = watch('longitude')
   const eventDate = watch('event_date')
-
-  const getCoordinate = (formValue, postValue) => {
-    if (formValue && formValue.toString().trim() !== '') {
-      const num = Number(formValue)
-      return !isNaN(num) ? num : null
-    }
-    if (postValue != null && postValue.toString().trim() !== '') {
-      const num = Number(postValue)
-      return !isNaN(num) ? num : null
-    }
-    return null
-  }
-
-  const markerLatitude = getCoordinate(latitude, post?.latitude)
-  const markerLongitude = getCoordinate(longitude, post?.longitude)
 
   const getPhotoUri = useCallback((photoPath) => {
     if (!photoPath) return null
@@ -114,22 +90,9 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
         event_date: eventDate,
         address: post.address || '',
         hashtag: post.hashtag || '',
-        latitude: post.latitude?.toString() || '',
-        longitude: post.longitude?.toString() || '',
+        latitude: '55.7558',
+        longitude: '37.6173',
       })
-
-      if (post.latitude != null && post.longitude != null) {
-        const lat = Number(post.latitude)
-        const lng = Number(post.longitude)
-        if (!isNaN(lat) && !isNaN(lng)) {
-          setMapRegion({
-            latitude: lat,
-            longitude: lng,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          })
-        }
-      }
 
       setSelectedImages([])
     } catch (e) {
@@ -267,11 +230,6 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
   }
 
   const onSubmit = async (data) => {
-    if (!data.latitude || !data.longitude) {
-      Alert.alert('Ошибка', 'Выберите место на карте')
-      return
-    }
-
     setUploading(true)
     try {
       const postData = {
@@ -279,8 +237,8 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
         description: data.description || null,
         event_date: formatDate(data.event_date),
         address: data.address,
-        latitude: parseFloat(data.latitude),
-        longitude: parseFloat(data.longitude),
+        latitude: 55.7558,
+        longitude: 37.6173,
         hashtag: data.hashtag?.trim().toLowerCase() || '',
       }
 
@@ -568,116 +526,6 @@ const EditPostBottomSheet = ({ post, visible, onClose, onSaved }) => {
           )}
         />
 
-        {/* Координаты - выбор на карте */}
-        <View style={styles.mapSection}>
-          <AppText style={styles.sectionTitle}>
-            Выберите место на карте *
-          </AppText>
-          <Controller
-            control={control}
-            name="latitude"
-            rules={{
-              required: 'Выберите место на карте',
-              validate: (value) => {
-                const lng = watch('longitude')
-                if (!value || !lng) {
-                  return 'Выберите место на карте'
-                }
-                return true
-              },
-            }}
-            render={() => (
-              <>
-                <View style={styles.mapContainer}>
-                  <MapView
-                    style={styles.map}
-                    region={
-                      markerLatitude != null &&
-                      markerLongitude != null &&
-                      !isNaN(markerLatitude) &&
-                      !isNaN(markerLongitude)
-                        ? {
-                            latitude: Number(markerLatitude),
-                            longitude: Number(markerLongitude),
-                            latitudeDelta: 0.05,
-                            longitudeDelta: 0.05,
-                          }
-                        : mapRegion
-                    }
-                    onRegionChangeComplete={setMapRegion}
-                    onPress={(e) => {
-                      const { latitude, longitude } = e.nativeEvent.coordinate
-                      setValue('latitude', latitude.toString(), {
-                        shouldValidate: true,
-                      })
-                      setValue('longitude', longitude.toString(), {
-                        shouldValidate: true,
-                      })
-                      setMapRegion({
-                        ...mapRegion,
-                        latitude,
-                        longitude,
-                      })
-                    }}
-                    showsUserLocation={true}
-                    showsMyLocationButton={true}
-                  >
-                    {markerLatitude != null &&
-                      markerLongitude != null &&
-                      !isNaN(markerLatitude) &&
-                      !isNaN(markerLongitude) && (
-                        <Marker
-                          coordinate={{
-                            latitude: Number(markerLatitude),
-                            longitude: Number(markerLongitude),
-                          }}
-                          anchor={{ x: 0.5, y: 0.5 }}
-                          centerOffset={{ x: 0, y: -5 }}
-                        >
-                          <View
-                            style={[
-                              styles.customMarker,
-                              {
-                                borderColor:
-                                  status === 'lost'
-                                    ? colors.lowOrange
-                                    : colors.green,
-                              },
-                            ]}
-                          >
-                            <View
-                              style={[
-                                styles.markerPlaceholder,
-                                {
-                                  backgroundColor:
-                                    status === 'lost'
-                                      ? colors.lowOrange
-                                      : colors.green,
-                                },
-                              ]}
-                            >
-                              <View style={styles.markerInnerCircle} />
-                            </View>
-                          </View>
-                        </Marker>
-                      )}
-                  </MapView>
-                </View>
-                {errors.latitude && (
-                  <AppText style={styles.errorText}>
-                    {errors.latitude.message}
-                  </AppText>
-                )}
-                {latitude && longitude && !errors.latitude && (
-                  <AppText style={styles.coordinatesText}>
-                    Широта: {latitude?.slice(0, 8)} | Долгота:{' '}
-                    {longitude?.slice(0, 8)}
-                  </AppText>
-                )}
-              </>
-            )}
-          />
-        </View>
 
         {/* Хештег */}
         <Controller
@@ -862,52 +710,6 @@ const styles = StyleSheet.create({
   },
   iosPicker: {
     height: 200,
-  },
-  mapSection: {
-    marginBottom: 16,
-  },
-  mapContainer: {
-    height: 250,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.lowOrange,
-    marginBottom: 12,
-  },
-  coordinatesText: {
-    color: colors.fullBlack,
-    fontSize: 14,
-    marginTop: 8,
-    fontFamily: 'Cruinn-Regular',
-  },
-  map: {
-    flex: 1,
-  },
-  customMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 3,
-    backgroundColor: colors.white,
-    shadowColor: colors.fullBlack,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 6,
-  },
-  markerPlaceholder: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  markerInnerCircle: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.black,
   },
   photosSection: {
     marginBottom: 24,

@@ -12,7 +12,6 @@ import {
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useForm, Controller } from 'react-hook-form'
-import MapView, { Marker } from 'react-native-maps'
 import { backgrounds, colors } from '@assets/index'
 import { AppText } from '@components/AppText/AppText'
 import { TextInputField } from '@components/TextInputField/TextInputField'
@@ -27,14 +26,6 @@ const CreatePostScreen = ({ navigation }) => {
   const [selectedImages, setSelectedImages] = useState([])
   const [uploading, setUploading] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [mapReady, setMapReady] = useState(false)
-  const [mapError, setMapError] = useState(false)
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 55.7558, // Москва по умолчанию
-    longitude: 37.6173,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  })
 
   const {
     control,
@@ -49,30 +40,13 @@ const CreatePostScreen = ({ navigation }) => {
       event_date: new Date(),
       address: '',
       hashtag: '',
-      latitude: '',
-      longitude: '',
+      latitude: '55.7558',
+      longitude: '37.6173',
     },
     mode: 'onChange',
   })
 
   const status = watch('status')
-  const latitude = watch('latitude')
-  const longitude = watch('longitude')
-
-  // Инициализация компонента с обработкой ошибок
-  useEffect(() => {
-    // Проверка доступности нативных модулей
-    try {
-      // Проверяем, что MapView доступен
-      if (typeof MapView === 'undefined') {
-        console.warn('MapView is not available')
-        setMapError(true)
-      }
-    } catch (error) {
-      console.error('Error initializing CreatePostScreen:', error)
-      setMapError(true)
-    }
-  }, [])
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -126,11 +100,6 @@ const CreatePostScreen = ({ navigation }) => {
   }
 
   const onSubmit = async (data) => {
-    if (!data.latitude || !data.longitude) {
-      Alert.alert('Ошибка', 'Выберите место на карте')
-      return
-    }
-
     if (uploading) {
       return // Предотвращаем множественные нажатия
     }
@@ -144,8 +113,8 @@ const CreatePostScreen = ({ navigation }) => {
         description: data.description || null,
         event_date: formatDate(data.event_date),
         address: data.address,
-        latitude: parseFloat(data.latitude),
-        longitude: parseFloat(data.longitude),
+        latitude: 55.7558,
+        longitude: 37.6173,
         hashtag: data.hashtag?.trim().toLowerCase() || '',
       }
 
@@ -343,157 +312,6 @@ const CreatePostScreen = ({ navigation }) => {
             )}
           />
 
-          {/* Координаты - выбор на карте */}
-          <View style={styles.mapSection}>
-            <AppText style={styles.sectionTitle}>
-              Выберите место на карте *
-            </AppText>
-            <Controller
-              control={control}
-              name="latitude"
-              rules={{
-                required: 'Выберите место на карте',
-                validate: (value) => {
-                  const lng = watch('longitude')
-                  if (!value || !lng) {
-                    return 'Выберите место на карте'
-                  }
-                  return true
-                },
-              }}
-              render={() => (
-                <>
-                  <View style={styles.mapContainer}>
-                    {mapError ? (
-                      <View style={styles.mapErrorContainer}>
-                        <AppText style={styles.mapErrorText}>
-                          Карта временно недоступна. Вы можете указать координаты вручную.
-                        </AppText>
-                        <View style={styles.manualCoordinatesContainer}>
-                          <TextInputField
-                            placeholder="Широта (например: 55.7558)"
-                            value={latitude}
-                            onChangeText={(text) => {
-                              setValue('latitude', text, { shouldValidate: true })
-                            }}
-                            keyboardType="numeric"
-                            style={styles.coordinateInput}
-                          />
-                          <TextInputField
-                            placeholder="Долгота (например: 37.6173)"
-                            value={longitude}
-                            onChangeText={(text) => {
-                              setValue('longitude', text, { shouldValidate: true })
-                            }}
-                            keyboardType="numeric"
-                            style={styles.coordinateInput}
-                          />
-                        </View>
-                      </View>
-                    ) : (
-                      <>
-                        {!mapReady && (
-                          <View style={styles.mapLoadingContainer}>
-                            <ActivityIndicator size="large" color={colors.green} />
-                          </View>
-                        )}
-                        <MapView
-                          style={styles.map}
-                          region={mapRegion}
-                          onRegionChangeComplete={(region) => {
-                            setMapRegion(region)
-                            if (!mapReady) {
-                              setMapReady(true)
-                            }
-                          }}
-                          onMapReady={() => {
-                            setMapReady(true)
-                            setMapError(false)
-                          }}
-                          onError={(error) => {
-                            console.error('MapView error:', error)
-                            setMapError(true)
-                            setMapReady(false)
-                          }}
-                          onPress={(e) => {
-                            try {
-                              const { latitude, longitude } = e.nativeEvent.coordinate
-                              if (latitude && longitude && !isNaN(latitude) && !isNaN(longitude)) {
-                                setValue('latitude', latitude.toString(), {
-                                  shouldValidate: true,
-                                })
-                                setValue('longitude', longitude.toString(), {
-                                  shouldValidate: true,
-                                })
-                                setMapRegion({
-                                  ...mapRegion,
-                                  latitude,
-                                  longitude,
-                                })
-                              }
-                            } catch (err) {
-                              console.error('MapView onPress error:', err)
-                            }
-                          }}
-                          showsUserLocation={false}
-                          showsMyLocationButton={false}
-                          loadingEnabled={true}
-                        >
-                          {latitude && longitude && !isNaN(parseFloat(latitude)) && !isNaN(parseFloat(longitude)) && (
-                            <Marker
-                              coordinate={{
-                                latitude: parseFloat(latitude),
-                                longitude: parseFloat(longitude),
-                              }}
-                              anchor={{ x: 0.5, y: 0.5 }}
-                              centerOffset={{ x: 0, y: -5 }}
-                            >
-                              <View
-                                style={[
-                                  styles.customMarker,
-                                  {
-                                    borderColor:
-                                      status === 'lost'
-                                        ? colors.lowOrange
-                                        : colors.green,
-                                  },
-                                ]}
-                              >
-                                <View
-                                  style={[
-                                    styles.markerPlaceholder,
-                                    {
-                                      backgroundColor:
-                                        status === 'lost'
-                                          ? colors.lowOrange
-                                          : colors.green,
-                                    },
-                                  ]}
-                                >
-                                  <View style={styles.markerInnerCircle} />
-                                </View>
-                              </View>
-                            </Marker>
-                          )}
-                        </MapView>
-                      </>
-                    )}
-                  </View>
-                  {errors.latitude && (
-                    <AppText style={styles.errorText}>
-                      {errors.latitude.message}
-                    </AppText>
-                  )}
-                  {latitude && longitude && !errors.latitude && (
-                    <AppText style={styles.coordinatesText}>
-                      Широта: {latitude?.slice(0, 8)} | Долгота:{' '}
-                      {longitude?.slice(0, 8)}
-                    </AppText>
-                  )}
-                </>
-              )}
-            />
-          </View>
 
           {/* Хештег */}
           <Controller
@@ -679,84 +497,6 @@ const styles = StyleSheet.create({
   },
   iosPicker: {
     height: 200,
-  },
-  mapSection: {
-    marginBottom: 16,
-  },
-  mapContainer: {
-    height: 250,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.lowOrange,
-    marginBottom: 12,
-  },
-  coordinatesText: {
-    color: colors.fullBlack,
-    fontSize: 14,
-    marginTop: 8,
-    fontFamily: 'Cruinn-Regular',
-  },
-  map: {
-    flex: 1,
-  },
-  mapLoadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    zIndex: 1,
-  },
-  mapErrorContainer: {
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: colors.white,
-  },
-  mapErrorText: {
-    color: colors.orange,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 16,
-    fontFamily: 'Cruinn-Regular',
-  },
-  manualCoordinatesContainer: {
-    width: '100%',
-    gap: 12,
-  },
-  coordinateInput: {
-    width: '100%',
-  },
-  customMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 3,
-    backgroundColor: colors.white,
-    shadowColor: colors.fullBlack,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 6,
-  },
-  markerPlaceholder: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  markerInnerCircle: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.black,
   },
   photosSection: {
     marginBottom: 24,
