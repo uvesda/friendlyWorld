@@ -29,30 +29,15 @@ module.exports = {
   },
 
   async updateAvatar(userId, file) {
-    console.log('=== UPDATE AVATAR SERVICE ===')
-    console.log('User ID:', userId)
-    console.log('File:', {
-      originalname: file?.originalname,
-      mimetype: file?.mimetype,
-      size: file?.size,
-      hasBuffer: !!file?.buffer,
-      bufferLength: file?.buffer?.length || 0,
-      hasFilename: !!file?.filename,
-      filename: file?.filename,
-    })
-    console.log('hasSupabaseConfig:', hasSupabaseConfig)
-    console.log('supabase exists:', !!supabase)
-    console.log('=============================')
-
     let avatarPath
 
     if (hasSupabaseConfig && supabase && file.buffer) {
       // Загружаем в Supabase Storage
-      const ext = path.extname(file.originalname)
+      const ext = path.extname(file.originalname) || '.jpg'
       const fileName = `avatar_${userId}_${Date.now()}${ext}`
       const filePathInStorage = `avatars/${fileName}`
 
-      // Удаляем старый аватар из Supabase, если он есть
+      // Удаляем старый аватар из Supabase, если он есть (не блокируем загрузку при ошибке)
       const currentUser = await UserModel.findById(userId)
       if (currentUser && currentUser.avatar && currentUser.avatar.startsWith('http')) {
         try {
@@ -66,17 +51,12 @@ module.exports = {
             }
           }
         } catch (error) {
+          // Игнорируем ошибку удаления старого файла - не критично
           console.error('Error deleting old avatar from Supabase:', error)
         }
       }
 
       // Загружаем новый аватар
-      console.log('Uploading to Supabase:', {
-        filePathInStorage,
-        contentType: file.mimetype,
-        bufferSize: file.buffer.length,
-      })
-
       const { data, error } = await supabase.storage
         .from('uploads')
         .upload(filePathInStorage, file.buffer, {
@@ -86,9 +66,6 @@ module.exports = {
 
       if (error) {
         console.error('❌ Supabase upload error:', error)
-        console.error('Error code:', error.statusCode)
-        console.error('Error message:', error.message)
-        console.error('Error details:', JSON.stringify(error, null, 2))
         throw new AppError('FILE_UPLOAD_FAILED', 500, error.message || 'Failed to upload to Supabase')
       }
 
@@ -97,17 +74,11 @@ module.exports = {
         throw new AppError('FILE_UPLOAD_FAILED', 500, 'No data returned from Supabase')
       }
 
-      console.log('✅ File uploaded successfully to Supabase:', {
-        path: data.path,
-        id: data.id,
-      })
-
       // Получаем публичный URL
       const {
         data: { publicUrl },
       } = supabase.storage.from('uploads').getPublicUrl(filePathInStorage)
 
-      console.log('✅ Public URL generated:', publicUrl)
       avatarPath = publicUrl
     } else if (file.filename) {
       // Локальное хранилище (для разработки)
@@ -122,7 +93,7 @@ module.exports = {
 
       avatarPath = `/uploads/avatars/${file.filename}`
     } else {
-      console.error('❌ File has no buffer and no filename:', file)
+      console.error('File has no buffer and no filename:', file)
       throw new AppError('FILE_REQUIRED', 400)
     }
 

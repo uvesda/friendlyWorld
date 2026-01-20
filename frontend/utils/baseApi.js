@@ -31,12 +31,49 @@ baseApi.interceptors.request.use(async (config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
   
+  // Логирование для запросов с FormData (загрузка файлов)
+  if (config.url?.includes('/avatar') || config.url?.includes('/photos')) {
+    console.log('=== FRONTEND: Request Interceptor ===')
+    console.log('URL:', config.url)
+    console.log('Method:', config.method?.toUpperCase())
+    console.log('Has Authorization:', !!config.headers.Authorization)
+    console.log('Content-Type:', config.headers['Content-Type'])
+    console.log('Is FormData:', config.data instanceof FormData)
+    console.log('Data type:', typeof config.data)
+    console.log('Data constructor:', config.data?.constructor?.name)
+    if (config.data instanceof FormData) {
+      console.log('FormData detected - multipart/form-data request')
+    }
+    console.log('====================================')
+  }
+  
   return config
 })
 
 baseApi.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    // Логирование успешных ответов для загрузки файлов
+    if (response.config?.url?.includes('/avatar') || response.config?.url?.includes('/photos')) {
+      console.log('=== FRONTEND: Response Success ===')
+      console.log('URL:', response.config.url)
+      console.log('Status:', response.status)
+      console.log('Data:', response.data)
+      console.log('=================================')
+    }
+    return response.data
+  },
   async (error) => {
+    // Логирование ошибок для загрузки файлов
+    if (error.config?.url?.includes('/avatar') || error.config?.url?.includes('/photos')) {
+      console.error('=== FRONTEND: Response Error ===')
+      console.error('URL:', error.config?.url)
+      console.error('Status:', error.response?.status)
+      console.error('Status Text:', error.response?.statusText)
+      console.error('Error Message:', error.message)
+      console.error('Response Data:', error.response?.data)
+      console.error('Response Headers:', error.response?.headers)
+      console.error('================================')
+    }
     const originalRequest = error.config
 
     if (

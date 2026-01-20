@@ -141,10 +141,18 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0]
+      
+      // Определяем правильный тип файла
+      const uri = asset.uri
+      const extension = uri.split('.').pop()?.toLowerCase() || 'jpg'
+      const mimeType = extension === 'png' ? 'image/png' : 
+                      extension === 'gif' ? 'image/gif' : 
+                      extension === 'webp' ? 'image/webp' : 'image/jpeg'
+      
       setSelectedAvatar({
         uri: asset.uri,
-        type: asset.type || 'image/jpeg',
-        name: asset.fileName || `avatar_${Date.now()}.jpg`,
+        type: mimeType,
+        name: asset.fileName || `avatar_${Date.now()}.${extension}`,
       })
       // Сбрасываем флаг удаления, если пользователь выбрал новое фото
       setAvatarToDelete(false)
@@ -166,6 +174,20 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
   }
 
   const onSubmit = async (data) => {
+    console.log('=== FRONTEND: onSubmit called ===')
+    console.log('Form data:', {
+      name: data.name,
+      email: data.email,
+      hasOldPassword: !!data.oldPassword,
+      hasNewPassword: !!data.newPassword,
+    })
+    console.log('Avatar state:', {
+      hasSelectedAvatar: !!selectedAvatar,
+      avatarToDelete,
+      selectedAvatarUri: selectedAvatar?.uri,
+    })
+    console.log('==================================')
+    
     setUploading(true)
     try {
       const updateData = {}
@@ -209,15 +231,53 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
       }
 
       if (avatarToDelete) {
+        console.log('🗑️ Deleting avatar...')
         await userApi.deleteAvatar()
+        console.log('✅ Avatar deleted')
       } else if (selectedAvatar) {
-        const formData = new FormData()
-        formData.append('avatar', {
+        console.log('📤 Starting avatar upload...')
+        console.log('Selected avatar:', {
           uri: selectedAvatar.uri,
-          type: selectedAvatar.type || 'image/jpeg',
-          name: selectedAvatar.name || `avatar.jpg`,
+          type: selectedAvatar.type,
+          name: selectedAvatar.name,
         })
-        await userApi.updateAvatar(formData)
+        
+        const formData = new FormData()
+        
+        // Правильный формат для React Native
+        // На Android оставляем file://, на iOS убираем
+        let fileUri = selectedAvatar.uri
+        if (Platform.OS === 'ios' && fileUri && fileUri.startsWith('file://')) {
+          fileUri = fileUri.replace('file://', '')
+        }
+        
+        // Определяем правильный тип файла
+        const fileExtension = selectedAvatar.uri?.split('.').pop()?.toLowerCase() || 'jpg'
+        const fileType = selectedAvatar.type || 
+          (fileExtension === 'png' ? 'image/png' : 
+           fileExtension === 'gif' ? 'image/gif' : 
+           fileExtension === 'webp' ? 'image/webp' : 'image/jpeg')
+        
+        const fileData = {
+          uri: fileUri,
+          type: fileType,
+          name: selectedAvatar.name || `avatar.${fileExtension}`,
+        }
+        console.log('File data to append:', fileData)
+        console.log('Platform:', Platform.OS)
+        console.log('Original URI:', selectedAvatar.uri)
+        console.log('Processed URI:', fileUri)
+        
+        formData.append('avatar', fileData)
+        console.log('✅ FormData created, calling userApi.updateAvatar...')
+        
+        try {
+          const result = await userApi.updateAvatar(formData)
+          console.log('✅ Avatar upload successful:', result)
+        } catch (uploadError) {
+          console.error('❌ Avatar upload failed:', uploadError)
+          throw uploadError
+        }
       }
 
       Alert.alert('Успех', 'Профиль успешно обновлен', [
@@ -235,9 +295,18 @@ const EditUserBottomSheet = ({ user, visible, onClose, onSaved }) => {
         },
       ])
     } catch (e) {
+      console.error('=== FRONTEND: onSubmit Error ===')
+      console.error('Error:', e)
+      console.error('Error message:', e.message)
+      console.error('Error response:', e.response)
+      console.error('Error status:', e.response?.status)
+      console.error('Error data:', e.response?.data)
+      console.error('Server error message:', getServerErrorMessage(e))
+      console.error('=================================')
       Alert.alert('Ошибка', getServerErrorMessage(e))
     } finally {
       setUploading(false)
+      console.log('✅ Uploading state set to false')
     }
   }
 
