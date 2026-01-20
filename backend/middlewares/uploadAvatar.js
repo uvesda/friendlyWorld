@@ -33,17 +33,55 @@ if (hasSupabaseConfig && supabase) {
 }
 
 const fileFilter = (req, file, cb) => {
-  if (!file.mimetype.startsWith('image/')) {
+  console.log('=== AVATAR FILE FILTER ===')
+  console.log('Fieldname:', file.fieldname)
+  console.log('Originalname:', file.originalname)
+  console.log('Mimetype:', file.mimetype)
+  console.log('==========================')
+
+  if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    console.error('Invalid file type:', file.mimetype)
     cb(new Error('Only images allowed'))
   } else {
     cb(null, true)
   }
 }
 
-module.exports = multer({
+const upload = multer({
   storage,
   fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB для аватаров
   },
 })
+
+// Добавляем обработчик ошибок multer для single()
+upload.single = function() {
+  return function(req, res, next) {
+    const middleware = multer({
+      storage,
+      fileFilter,
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+    }).single.apply(this, arguments)
+
+    middleware(req, res, (err) => {
+      if (err) {
+        console.error('Multer error (avatar):', err)
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return next(new Error('FILE_TOO_LARGE'))
+          }
+          if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            return next(new Error('UNEXPECTED_FILE'))
+          }
+        }
+        return next(err)
+      }
+      next()
+    })
+  }
+}
+
+module.exports = upload

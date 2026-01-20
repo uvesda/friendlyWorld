@@ -32,10 +32,33 @@ module.exports = {
 
   async updateAvatar(req, res, next) {
     try {
-      if (!req.file) throw new AppError('NO_FILE_UPLOADED', 400)
+      console.log('=== UPDATE AVATAR CONTROLLER ===')
+      console.log('User ID:', req.user.id)
+      console.log('Has file:', !!req.file)
+      console.log('File:', req.file ? {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        hasBuffer: !!req.file.buffer,
+        bufferLength: req.file.buffer?.length || 0,
+        hasFilename: !!req.file.filename,
+        filename: req.file.filename,
+      } : null)
+      console.log('===============================')
+
+      if (!req.file) {
+        console.error('❌ No file in request!')
+        throw new AppError('NO_FILE_UPLOADED', 400)
+      }
+
+      console.log('✅ File received, calling UserService.updateAvatar')
       const result = await UserService.updateAvatar(req.user.id, req.file)
+      console.log('✅ Upload successful, result:', result)
       success(res, result)
     } catch (e) {
+      console.error('❌ Error in updateAvatar controller:', e)
+      console.error('Error stack:', e.stack)
       next(e)
     }
   },

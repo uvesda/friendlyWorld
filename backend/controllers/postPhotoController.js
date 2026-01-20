@@ -66,16 +66,43 @@ module.exports = {
 
   async update(req, res, next) {
     try {
+      console.log('=== UPDATE PHOTO CONTROLLER ===')
+      console.log('Post ID:', req.params.id)
+      console.log('Photo ID:', req.params.photoId)
+      console.log('User ID:', req.user.id)
+      console.log('Has file:', !!req.file)
+      console.log('File:', req.file ? {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        hasBuffer: !!req.file.buffer,
+        bufferLength: req.file.buffer?.length || 0,
+        hasFilename: !!req.file.filename,
+        filename: req.file.filename,
+      } : null)
+      console.log('===============================')
+
       const { id: postId, photoId } = req.params
       const file = req.file
+
+      if (!file) {
+        console.error('❌ No file in request!')
+        throw new AppError('NO_FILE_UPLOADED', 400)
+      }
+
+      console.log('✅ File received, calling PostPhotoService.updatePhoto')
       const updated = await PostPhotoService.updatePhoto(
         postId,
         req.user.id,
         photoId,
         file
       )
+      console.log('✅ Update successful, result:', updated)
       success(res, updated)
     } catch (e) {
+      console.error('❌ Error in update controller:', e)
+      console.error('Error stack:', e.stack)
       next(e)
     }
   },

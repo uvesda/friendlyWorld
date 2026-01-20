@@ -26,6 +26,7 @@ export const serverErrorMap = {
   PHOTO_NOT_FOUND: 'Фото не найдено',
   FILE_REQUIRED: 'Файл обязателен',
   NO_FILE_UPLOADED: 'Файл не загружен',
+  FILE_UPLOAD_FAILED: 'Ошибка загрузки файла',
 
   // USERS
   USER_NOT_FOUND: 'Пользователь не найден',

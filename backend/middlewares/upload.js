@@ -63,7 +63,7 @@ const upload = multer({
   },
 })
 
-// Добавляем обработчик ошибок multer
+// Добавляем обработчик ошибок multer для any()
 upload.any = function() {
   return function(req, res, next) {
     const middleware = multer({
@@ -76,13 +76,42 @@ upload.any = function() {
 
     middleware(req, res, (err) => {
       if (err) {
-        console.error('Multer error:', err)
+        console.error('Multer error (any):', err)
         if (err instanceof multer.MulterError) {
           if (err.code === 'LIMIT_FILE_SIZE') {
             return next(new Error('FILE_TOO_LARGE'))
           }
           if (err.code === 'LIMIT_FILE_COUNT') {
             return next(new Error('TOO_MANY_FILES'))
+          }
+        }
+        return next(err)
+      }
+      next()
+    })
+  }
+}
+
+// Добавляем обработчик ошибок multer для single()
+upload.single = function() {
+  return function(req, res, next) {
+    const middleware = multer({
+      storage,
+      fileFilter,
+      limits: {
+        fileSize: 100 * 1024 * 1024,
+      },
+    }).single.apply(this, arguments)
+
+    middleware(req, res, (err) => {
+      if (err) {
+        console.error('Multer error (single):', err)
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return next(new Error('FILE_TOO_LARGE'))
+          }
+          if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            return next(new Error('UNEXPECTED_FILE'))
           }
         }
         return next(err)

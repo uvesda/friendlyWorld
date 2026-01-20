@@ -55,7 +55,9 @@ router.delete('/:id/photos/:photoId', auth, Controller.delete)
 router.put(
   '/:id/photos/:photoId',
   auth,
+  logRequest,
   upload.single('photo'),
+  handleMulterError,
   Controller.update
 )
 
